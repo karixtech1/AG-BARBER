@@ -3,9 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بطاقة الوفاء</title>
+  <title>FIDELIX - بطاقة الوفاء</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "643ff1c9-c02d-48de-a6ed-6be7e7a5b77f",
+        serviceWorkerParam: { scope: "./" },
+        serviceWorkerPath: "./OneSignalSDKWorker.js"
+      });
+    });
+  </script>
   <style>
     :root { --bg: #0b0b0d; --card: #16161a; --gold: #d4af37; --text: #ffffff; }
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -22,6 +33,7 @@
     .goal-bar { display: flex; justify-content: space-between; font-size: 0.9rem; color: #aaa; padding: 10px 14px; background: #0f0f12; border-radius: 12px; margin-bottom: 20px; }
     .qr-box { background: #fff; padding: 16px; border-radius: 16px; display: inline-block; margin: 12px 0; }
     .short-code { font-family: monospace; font-size: 1.2rem; letter-spacing: 3px; color: var(--gold); font-weight: bold; }
+    .ios-tip { background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: #ddd; font-size: 0.8rem; padding: 10px; border-radius: 10px; margin-top: 14px; }
     .hidden { display: none; }
     @media print {
       body { background: #fff; color: #000; }
@@ -30,22 +42,13 @@
       .no-print { display: none !important; }
     }
   </style>
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "da7fffa9-6818-44d7-a238-c432c4f4c933",
-    });
-  });
-</script>
 </head>
 <body>
 
 <div class="container">
   <div id="shopTitle" class="shop-name">جاري التحميل...</div>
 
-  <!-- وضع توليد QR المحل للطباعة (يُفتح عبر ?shop=SLUG&qr=1) -->
+  <!-- وضع توليد QR المحل للطباعة -->
   <div id="shopQrView" class="hidden">
     <p class="greeting" style="margin-top:8px;">امسح الكود واحصل على بطاقة الوفاء ✂️</p>
     <div class="qr-box"><div id="shopQrcode"></div></div>
@@ -54,7 +57,7 @@
     <button class="no-print" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF</button>
   </div>
 
-  <!-- شاشة التسجيل (تظهر مرة واحدة فقط للزبون) -->
+  <!-- شاشة التسجيل -->
   <div id="registerView" class="hidden">
     <p class="greeting">سجّل في 10 ثوانٍ واحصل على بطاقة الوفاء ✂️</p>
     <input type="text" id="fullName" placeholder="الاسم (مثلاً: أمين)">
@@ -62,7 +65,7 @@
     <button onclick="registerCustomer()">إظهار بطاقتي</button>
   </div>
 
-  <!-- شاشة البطاقة الرقمية للزبون -->
+  <!-- شاشة البطاقة الرقمية -->
   <div id="cardView" class="hidden">
     <div id="userGreeting" class="greeting"></div>
     <div id="stampsGrid" class="grid"></div>
@@ -73,6 +76,9 @@
     <div class="qr-box"><div id="qrcode"></div></div>
     <div id="shortCode" class="short-code"></div>
     <p style="font-size: 0.8rem; color: #777; margin-top: 12px;">أظهر هذا الكود للحلاق بعد كل حلاقة</p>
+    <div id="iosTip" class="ios-tip hidden">
+      📱 لمستخدمي الآيفون: اضغط على زر <strong>المشاركة</strong> ثم <strong>إضافة إلى الشاشة الرئيسية</strong> لتصلك تذكيرات حلاقتك.
+    </div>
   </div>
 </div>
 
@@ -96,7 +102,6 @@
     document.getElementById('shopTitle').innerText = '✂️ ' + shop.name;
     document.getElementById('rewardText').innerText = '🎁 ' + shop.reward_text;
 
-    // إذا كان الرابط بوضع توليد QR المحل (?qr=1)
     if (isQrMode) {
       const cleanUrl = `${window.location.origin}${window.location.pathname}?shop=${shop.slug}`;
       document.getElementById('shopQrView').classList.remove('hidden');
@@ -123,9 +128,10 @@
 
   async function registerCustomer() {
     const fullName = document.getElementById('fullName').value.trim();
-    const phone = document.getElementById('phone').value.trim();
+    const phone = document.getElementById('phone').value.replace(/\D/g, '');
     if (!fullName || phone.length < 9) return alert('أدخل الاسم ورقم الهاتف الصحيح');
 
+    // منع التكرار: إذا غيّر الزبون هاتفه وأدخل رقمه، يسترجع حسابه القديم بنقاطه
     let { data: existing } = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('phone', phone).single();
     if (!existing) {
       const { data: created, error } = await db.from('customers').insert({
@@ -160,6 +166,21 @@
 
     document.getElementById('qrcode').innerHTML = '';
     new QRCode(document.getElementById('qrcode'), { text: c.short_code, width: 140, height: 140 });
+
+    // ربط هاتف الزبون بـ OneSignal وطلب إذن الإشعارات
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.login(c.id);
+      if (Notification.permission === 'default') {
+        OneSignal.Slidedown.promptPush();
+      }
+    });
+
+    // إظهار تنبيه للآيفون إذا لم تكن البطاقة مضافة للشاشة الرئيسية
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isStandalone) {
+      document.getElementById('iosTip').classList.remove('hidden');
+    }
   }
 
   init();

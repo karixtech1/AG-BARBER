@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بطاقة الوفاء</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root { --bg: #0b0b0d; --card: #16161a; --gold: #d4af37; --text: #ffffff; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
+    .container { width: 100%; max-width: 390px; background: var(--card); border: 1px solid #2a2a32; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
+    .shop-name { color: var(--gold); font-size: 1.4rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }
+    .greeting { font-size: 1.05rem; color: #ccc; margin-bottom: 20px; }
+    input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid #333; background: #0f0f12; color: #fff; font-size: 1rem; text-align: center; }
+    button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--gold); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
+    .stamp { aspect-ratio: 1; border-radius: 50%; border: 2px dashed #3a3a45; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: #3a3a45; }
+    .stamp.active { border: 2px solid var(--gold); background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+    .stamp.reward { border-color: var(--gold); color: var(--gold); }
+    .goal-bar { display: flex; justify-content: space-between; font-size: 0.9rem; color: #aaa; padding: 10px 14px; background: #0f0f12; border-radius: 12px; margin-bottom: 20px; }
+    .qr-box { background: #fff; padding: 16px; border-radius: 16px; display: inline-block; margin: 12px 0; }
+    .short-code { font-family: monospace; font-size: 1.2rem; letter-spacing: 3px; color: var(--gold); font-weight: bold; }
+    .hidden { display: none; }
+    @media print {
+      body { background: #fff; color: #000; }
+      .container { border: 2px solid #000; box-shadow: none; background: #fff; color: #000; }
+      .shop-name, .greeting { color: #000 !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div id="shopTitle" class="shop-name">جاري التحميل...</div>
+
+  <!-- وضع توليد QR المحل للطباعة (يُفتح عبر ?shop=SLUG&qr=1) -->
+  <div id="shopQrView" class="hidden">
+    <p class="greeting" style="margin-top:8px;">امسح الكود واحصل على بطاقة الوفاء ✂️</p>
+    <div class="qr-box"><div id="shopQrcode"></div></div>
+    <p id="shopOfferText" style="color:var(--gold); font-weight:bold; font-size:1.05rem; margin:10px 0;"></p>
+    <p id="shopLinkText" style="font-size:0.75rem; color:#888; word-break:break-all; direction:ltr;"></p>
+    <button class="no-print" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF</button>
+  </div>
+
+  <!-- شاشة التسجيل (تظهر مرة واحدة فقط للزبون) -->
+  <div id="registerView" class="hidden">
+    <p class="greeting">سجّل في 10 ثوانٍ واحصل على بطاقة الوفاء ✂️</p>
+    <input type="text" id="fullName" placeholder="الاسم (مثلاً: أمين)">
+    <input type="tel" id="phone" placeholder="رقم الهاتف (05 / 06 / 07)">
+    <button onclick="registerCustomer()">إظهار بطاقتي</button>
+  </div>
+
+  <!-- شاشة البطاقة الرقمية للزبون -->
+  <div id="cardView" class="hidden">
+    <div id="userGreeting" class="greeting"></div>
+    <div id="stampsGrid" class="grid"></div>
+    <div class="goal-bar">
+      <span id="progressText">0 / 10</span>
+      <span id="rewardText" style="color: var(--gold);">🎁 حلاقة مجانية</span>
+    </div>
+    <div class="qr-box"><div id="qrcode"></div></div>
+    <div id="shortCode" class="short-code"></div>
+    <p style="font-size: 0.8rem; color: #777; margin-top: 12px;">أظهر هذا الكود للحلاق بعد كل حلاقة</p>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://udufhldmcdbncueathiy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkdWZobGRtY2RibmN1ZWF0aGl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1MzA4MjcsImV4cCI6MjExMTEwNjgyN30.6OZBOYwKPH3MhiJPuMElqKiiUsmAYBBf8q4PAfpicYo';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const shopSlug = (params.get('shop') || 'barber-vip').trim().toLowerCase();
+  const isQrMode = params.get('qr') === '1';
+  let currentShop = null;
+
+  async function init() {
+    const { data: shop } = await db.from('shops').select('*').eq('slug', shopSlug).single();
+    if (!shop || !shop.is_active || new Date(shop.expires_at) < new Date()) {
+      document.getElementById('shopTitle').innerText = 'الخدمة غير متاحة حالياً';
+      return;
+    }
+    currentShop = shop;
+    document.getElementById('shopTitle').innerText = '✂️ ' + shop.name;
+    document.getElementById('rewardText').innerText = '🎁 ' + shop.reward_text;
+
+    // إذا كان الرابط بوضع توليد QR المحل (?qr=1)
+    if (isQrMode) {
+      const cleanUrl = `${window.location.origin}${window.location.pathname}?shop=${shop.slug}`;
+      document.getElementById('shopQrView').classList.remove('hidden');
+      document.getElementById('shopOfferText').innerText = `${shop.stamps_goal} حلاقات = ${shop.reward_text} 🎁`;
+      document.getElementById('shopLinkText').innerText = cleanUrl;
+      document.getElementById('shopQrcode').innerHTML = '';
+      new QRCode(document.getElementById('shopQrcode'), { text: cleanUrl, width: 220, height: 220 });
+      return;
+    }
+
+    const savedId = localStorage.getItem('customer_' + shop.id);
+    if (savedId) {
+      loadCard(savedId);
+    } else {
+      document.getElementById('registerView').classList.remove('hidden');
+    }
+  }
+
+  function generateShortCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const part = () => Array.from({length: 3}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return part() + '-' + part();
+  }
+
+  async function registerCustomer() {
+    const fullName = document.getElementById('fullName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    if (!fullName || phone.length < 9) return alert('أدخل الاسم ورقم الهاتف الصحيح');
+
+    let { data: existing } = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('phone', phone).single();
+    if (!existing) {
+      const { data: created, error } = await db.from('customers').insert({
+        shop_id: currentShop.id, full_name: fullName, phone: phone, short_code: generateShortCode()
+      }).select().single();
+      if (error) return alert('حدث خطأ، حاول مجدداً');
+      existing = created;
+    }
+    localStorage.setItem('customer_' + currentShop.id, existing.id);
+    loadCard(existing.id);
+  }
+
+  async function loadCard(customerId) {
+    const { data: c } = await db.from('customers').select('*').eq('id', customerId).single();
+    if (!c) { localStorage.removeItem('customer_' + currentShop.id); return location.reload(); }
+
+    document.getElementById('registerView').classList.add('hidden');
+    document.getElementById('cardView').classList.remove('hidden');
+    document.getElementById('userGreeting').innerText = `مرحباً ${c.full_name} !`;
+    document.getElementById('progressText').innerText = `الهدف: ${c.stamps} / ${currentShop.stamps_goal}`;
+    document.getElementById('shortCode').innerText = c.short_code;
+
+    const grid = document.getElementById('stampsGrid');
+    grid.innerHTML = '';
+    for (let i = 1; i <= currentShop.stamps_goal; i++) {
+      const div = document.createElement('div');
+      const isLast = i === currentShop.stamps_goal;
+      div.className = 'stamp' + (i <= c.stamps ? ' active' : '') + (isLast ? ' reward' : '');
+      div.innerText = isLast ? '⭐' : '✂️';
+      grid.appendChild(div);
+    }
+
+    document.getElementById('qrcode').innerHTML = '';
+    new QRCode(document.getElementById('qrcode'), { text: c.short_code, width: 140, height: 140 });
+  }
+
+  init();
+</script>
+</body>
+</html>

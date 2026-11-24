@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الحلاق</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    :root { --bg: #0b0b0d; --card: #16161a; --gold: #d4af37; --green: #25D366; --red: #e74c3c; --text: #fff; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+    .app { width: 100%; max-width: 440px; }
+    .card { background: var(--card); border: 1px solid #2a2a32; border-radius: 18px; padding: 20px; margin-bottom: 16px; }
+    h2, h3 { margin: 0 0 12px; color: var(--gold); text-align: center; }
+    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #0f0f12; color: #fff; font-size: 1rem; text-align: center; margin-bottom: 10px; }
+    button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--gold); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 6px; }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 10px 14px; background: var(--card); border-radius: 12px; border: 1px solid #2a2a32; }
+    .logout-btn { width: auto; padding: 6px 12px; margin: 0; font-size: 0.85rem; background: #2a2a32; color: #fff; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { flex: 1; padding: 10px; background: #16161a; color: #aaa; border: 1px solid #2a2a32; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; }
+    .tab.active { background: var(--gold); color: #000; }
+    .customer-box { background: #0f0f12; padding: 14px; border-radius: 12px; margin-top: 12px; border: 1px solid #2a2a32; }
+    .inactive-item { display: flex; justify-content: space-between; align-items: center; background: #0f0f12; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #2a2a32; }
+    .wa-btn { background: var(--green); color: #000; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+    .stat-box { background: #0f0f12; padding: 14px; border-radius: 12px; border: 1px solid #2a2a32; }
+    .stat-num { font-size: 1.6rem; font-weight: bold; color: var(--gold); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- شاشة الدخول -->
+  <div id="loginView" class="card">
+    <h2 id="shopHeader">لوحة الحلاق ✂️</h2>
+    <input type="text" id="slugInput" placeholder="معرّف المحل (مثلاً: ag-barber)" style="direction: ltr;">
+    <input type="password" id="pinInput" placeholder="أدخل الكود السري (PIN)">
+    <button onclick="login()">دخول</button>
+    <p id="loginError" style="color:var(--red); text-align:center; font-size:0.9rem; margin-bottom:0;"></p>
+  </div>
+
+  <!-- لوحة التحكم الرئيسية -->
+  <div id="dashboardView" class="hidden">
+    <div class="top-bar">
+      <strong id="activeShopName" style="color:var(--gold);"></strong>
+      <button class="logout-btn" onclick="logout()">خروج</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('scan', this)">📷 مسح / نقاط</div>
+      <div class="tab" onclick="switchTab('inactive', this)">🔔 الغائبون</div>
+      <div class="tab" onclick="switchTab('stats', this)">📊 إحصائيات</div>
+    </div>
+
+    <!-- التبويب 1: المسح وإضافة النقاط -->
+    <div id="tab-scan" class="card">
+      <div id="reader" style="width:100%; border-radius:12px; overflow:hidden; margin-bottom:12px;"></div>
+      <button class="btn-outline" onclick="toggleCamera()" id="camBtn">تشغيل الكاميرا للمسح</button>
+      
+      <hr style="border-color:#2a2a32; margin:16px 0;">
+      <input type="text" id="manualCode" placeholder="أو اكتب الكود المختصر (مثلاً M4N-8Q5)" style="text-transform:uppercase;">
+      <button onclick="findCustomer(document.getElementById('manualCode').value)">بحث عن الزبون</button>
+
+      <!-- نتيجة البحث -->
+      <div id="customerResult" class="customer-box hidden">
+        <h3 id="cName" style="margin-bottom:6px;"></h3>
+        <p style="text-align:center; color:#ccc; margin:0 0 12px;">
+          الرصيد الحالي: <strong id="cStamps" style="color:var(--gold); font-size:1.2rem;"></strong>
+        </p>
+        <button id="addStampBtn" onclick="addStamp()">✂️ إضافة نقطة (+1 حلاقة)</button>
+        <button id="redeemBtn" class="btn-green hidden" onclick="redeemReward()">🎁 تسليم الحلاقة المجانية (تصفير)</button>
+      </div>
+    </div>
+
+    <!-- التبويب 2: الزبائن الغائبون (+28 يوم) -->
+    <div id="tab-inactive" class="card hidden">
+      <h3>زبائن غابوا لأكثر من 28 يوماً</h3>
+      <p style="font-size:0.85rem; color:#aaa; text-align:center; margin-top:0;">اضغط على واتساب لإرسال تذكير جاهز باسم الزبون</p>
+      <div id="inactiveList">جاري التحميل...</div>
+    </div>
+
+    <!-- التبويب 3: الإحصائيات -->
+    <div id="tab-stats" class="card hidden">
+      <h3>ملخص الصالون</h3>
+      <div class="stats">
+        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div>إجمالي الزبائن</div></div>
+        <div class="stat-box"><div class="stat-num" id="statRewards">0</div><div>حلاقات مجانية</div></div>
+      </div>
+      <p id="subExpiry" style="text-align:center; color:#888; font-size:0.85rem; margin-top:16px;"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://udufhldmcdbncueathiy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkdWZobGRtY2RibmN1ZWF0aGl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1MzA4MjcsImV4cCI6MjExMTEwNjgyN30.6OZBOYwKPH3MhiJPuMElqKiiUsmAYBBf8q4PAfpicYo';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const urlSlug = (params.get('shop') || '').trim().toLowerCase();
+
+  let currentShop = null;
+  let currentCustomer = null;
+  let html5QrCode = null;
+  let cameraActive = false;
+
+  // تهيئة شاشة الدخول: إذا كان الرابط يحتوي على ?shop= نخفي حقل المعرّف ونعرض اسم المحل
+  async function initLogin() {
+    if (urlSlug) {
+      document.getElementById('slugInput').value = urlSlug;
+      document.getElementById('slugInput').classList.add('hidden');
+      const { data: shop } = await db.from('shops').select('name').eq('slug', urlSlug).single();
+      if (shop) {
+        document.getElementById('shopHeader').innerText = '✂️ ' + shop.name;
+      } else {
+        document.getElementById('shopHeader').innerText = '⚠️ المحل غير موجود';
+        document.getElementById('slugInput').classList.remove('hidden');
+      }
+    }
+  }
+  initLogin();
+
+  async function login() {
+    showErr('');
+    const slug = document.getElementById('slugInput').value.trim().toLowerCase();
+    const pin = document.getElementById('pinInput').value.trim();
+
+    if (!slug) return showErr('يرجى إدخال معرّف المحل');
+    if (!pin) return showErr('يرجى إدخال الكود السري (PIN)');
+
+    const { data: shop } = await db.from('shops').select('*').eq('slug', slug).single();
+
+    if (!shop) return showErr('معرّف المحل غير موجود');
+    if (!shop.is_active || new Date(shop.expires_at) < new Date()) {
+      return showErr('انتهت صلاحية الاشتراك، يرجى التواصل للتجديد.');
+    }
+    if (String(shop.pin_code).trim() !== pin) return showErr('الكود السري غير صحيح');
+
+    currentShop = shop;
+    document.getElementById('activeShopName').innerText = '✂️ ' + shop.name;
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('dashboardView').classList.remove('hidden');
+    document.getElementById('subExpiry').innerText = 'صلاحية الاشتراك حتى: ' + new Date(shop.expires_at).toLocaleDateString('ar-DZ');
+    loadData();
+  }
+
+  function logout() {
+    if (cameraActive) toggleCamera();
+    currentShop = null;
+    currentCustomer = null;
+    document.getElementById('pinInput').value = '';
+    document.getElementById('customerResult').classList.add('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
+    document.getElementById('loginView').classList.remove('hidden');
+  }
+
+  function showErr(msg) { document.getElementById('loginError').innerText = msg; }
+
+  function switchTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['scan', 'inactive', 'stats'].forEach(t => document.getElementById('tab-' + t).classList.add('hidden'));
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    if (tab !== 'scan' && cameraActive) toggleCamera();
+    if (tab !== 'scan') loadData();
+  }
+
+  async function toggleCamera() {
+    if (!cameraActive) {
+      html5QrCode = new Html5Qrcode("reader");
+      await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, (code) => {
+        toggleCamera();
+        findCustomer(code);
+      });
+      cameraActive = true;
+      document.getElementById('camBtn').innerText = 'إيقاف الكاميرا';
+    } else {
+      await html5QrCode.stop();
+      cameraActive = false;
+      document.getElementById('camBtn').innerText = 'تشغيل الكاميرا للمسح';
+    }
+  }
+
+  async function findCustomer(code) {
+    code = code.trim().toUpperCase();
+    if (!code) return;
+    const { data: c } = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('short_code', code).single();
+    if (!c) return alert('لم يتم العثور على زبون بهذا الكود');
+
+    currentCustomer = c;
+    document.getElementById('customerResult').classList.remove('hidden');
+    document.getElementById('cName').innerText = c.full_name;
+    document.getElementById('cStamps').innerText = `${c.stamps} / ${currentShop.stamps_goal}`;
+
+    const isReady = c.stamps >= currentShop.stamps_goal;
+    document.getElementById('addStampBtn').classList.toggle('hidden', isReady);
+    document.getElementById('redeemBtn').classList.toggle('hidden', !isReady);
+  }
+
+  async function addStamp() {
+    const newStamps = currentCustomer.stamps + 1;
+    await db.from('customers').update({ stamps: newStamps, last_visit_at: new Date().toISOString() }).eq('id', currentCustomer.id);
+    alert(`تمت إضافة نقطة لـ ${currentCustomer.full_name} بنجاح!`);
+    findCustomer(currentCustomer.short_code);
+  }
+
+  async function redeemReward() {
+    await db.from('customers').update({
+      stamps: 0,
+      total_rewards: currentCustomer.total_rewards + 1,
+      last_visit_at: new Date().toISOString()
+    }).eq('id', currentCustomer.id);
+    alert('تم تسليم الحلاقة المجانية وتصفير البطاقة!');
+    findCustomer(currentCustomer.short_code);
+  }
+
+  function formatDzPhone(p) {
+    p = p.replace(/\D/g, '');
+    if (p.startsWith('0')) return '213' + p.slice(1);
+    return p;
+  }
+
+  async function loadData() {
+    const { data: list } = await db.from('customers').select('*').eq('shop_id', currentShop.id);
+    if (!list) return;
+
+    document.getElementById('statTotal').innerText = list.length;
+    document.getElementById('statRewards').innerText = list.reduce((sum, c) => sum + c.total_rewards, 0);
+
+    const cutoff = Date.now() - (28 * 24 * 60 * 60 * 1000);
+    const inactive = list.filter(c => new Date(c.last_visit_at).getTime() < cutoff);
+
+    const container = document.getElementById('inactiveList');
+    if (inactive.length === 0) {
+      container.innerHTML = '<p style="text-align:center; color:#777;">لا يوجد زبائن غائبون حالياً.</p>';
+      return;
+    }
+
+    container.innerHTML = inactive.map(c => {
+      const msg = encodeURIComponent(`سلام ${c.full_name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة في ${currentShop.name} ✂️`);
+      const waLink = `https://wa.me/${formatDzPhone(c.phone)}?text=${msg}`;
+      return `
+        <div class="inactive-item">
+          <div>
+            <strong>${c.full_name}</strong><br>
+            <small style="color:#888;">آخر زيارة: ${new Date(c.last_visit_at).toLocaleDateString('ar-DZ')}</small>
+          </div>
+          <a href="${waLink}" target="_blank" class="wa-btn">واتساب 💬</a>
+        </div>`;
+    }).join('');
+  }
+</script>
+</body>
+</html>

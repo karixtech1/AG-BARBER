@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الاشتراكات (SaaS Admin)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { margin: 0; background: #0b0b0d; color: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    .box { max-width: 650px; margin: auto; background: #16161a; padding: 20px; border-radius: 16px; border: 1px solid #2a2a32; margin-bottom: 20px; }
+    input, button { width: 100%; padding: 11px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #333; background: #0f0f12; color: #fff; box-sizing: border-box; font-size: 0.95rem; }
+    button { background: #d4af37; color: #000; font-weight: bold; cursor: pointer; border: none; }
+    .shop-row { background: #0f0f12; padding: 14px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #2a2a32; }
+    .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .actions button { flex: 1; margin: 0; padding: 8px; font-size: 0.85rem; }
+    .btn-dark { background: #2a2a32; color: #fff; }
+    .btn-qr { background: #25D366; color: #000; }
+    .hidden { display: none; }
+    a { text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div id="authBox" class="box">
+  <h2 style="color:#d4af37; text-align:center;">لوحة الآدمن (SaaS)</h2>
+  <input type="password" id="adminPass" placeholder="كلمة السر (الافتراضية: 2026)">
+  <button onclick="unlock()">دخول</button>
+</div>
+
+<div id="mainBox" class="hidden">
+  <!-- إضافة محل جديد -->
+  <div class="box">
+    <h3 style="color:#d4af37; margin-top:0;">إضافة محل حلاقة جديد</h3>
+    <input type="text" id="sName" placeholder="اسم المحل (مثلاً: صالون الأمين)">
+    <input type="text" id="sSlug" placeholder="الرابط المختصر بالإنجليزية (مثلاً: salon-amine)" style="direction:ltr;">
+    <input type="text" id="sPin" placeholder="كود PIN للحلاق (مثلاً: 1234)">
+    <input type="number" id="sDays" value="30" placeholder="مدة الاشتراك بالأيام">
+    <button onclick="addShop()">إنشاء المحل وتفعيل الاشتراك</button>
+  </div>
+
+  <!-- قائمة المحلات + البحث -->
+  <div class="box">
+    <h3 style="color:#d4af37; margin-top:0;">المحلات المشتركة</h3>
+    <input type="text" id="searchInput" placeholder="🔍 ابحث باسم المحل أو المعرّف..." oninput="filterShops()">
+    <div id="shopsList">جاري التحميل...</div>
+  </div>
+
+  <!-- تغيير كود واجهة الآدمن -->
+  <div class="box">
+    <h3 style="color:#d4af37; margin-top:0;">🔒 تغيير كلمة سر واجهة الآدمن</h3>
+    <input type="password" id="newAdminPass" placeholder="أدخل كلمة السر الجديدة">
+    <button class="btn-dark" onclick="changeAdminPass()">حفظ كلمة السر الجديدة</button>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://udufhldmcdbncueathiy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkdWZobGRtY2RibmN1ZWF0aGl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1MzA4MjcsImV4cCI6MjExMTEwNjgyN30.6OZBOYwKPH3MhiJPuMElqKiiUsmAYBBf8q4PAfpicYo';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let allShops = [];
+
+  function getMasterPass() {
+    return localStorage.getItem('saas_admin_pass') || '2026';
+  }
+
+  function unlock() {
+    if (document.getElementById('adminPass').value === getMasterPass()) {
+      document.getElementById('authBox').classList.add('hidden');
+      document.getElementById('mainBox').classList.remove('hidden');
+      loadShops();
+    } else alert('كلمة السر خاطئة');
+  }
+
+  function changeAdminPass() {
+    const newPass = document.getElementById('newAdminPass').value.trim();
+    if (newPass.length < 4) return alert('اختر كلمة سر من 4 أحرف أو أرقام على الأقل');
+    localStorage.setItem('saas_admin_pass', newPass);
+    document.getElementById('newAdminPass').value = '';
+    alert('تم تغيير كلمة سر الآدمن بنجاح!');
+  }
+
+  async function addShop() {
+    const name = document.getElementById('sName').value.trim();
+    const slug = document.getElementById('sSlug').value.trim().toLowerCase();
+    const pin_code = document.getElementById('sPin').value.trim();
+    const days = parseInt(document.getElementById('sDays').value) || 30;
+    if (!name || !slug || !pin_code) return alert('املأ جميع الحقول');
+
+    const expires_at = new Date(Date.now() + days * 86400000).toISOString();
+    const { error } = await db.from('shops').insert({ name, slug, pin_code, expires_at });
+    if (error) return alert('خطأ: ربما الرابط المختصر مستخدم مسبقاً');
+    
+    document.getElementById('sName').value = '';
+    document.getElementById('sSlug').value = '';
+    document.getElementById('sPin').value = '';
+    alert('تمت إضافة المحل بنجاح!');
+    loadShops();
+  }
+
+  async function loadShops() {
+    const { data: shops } = await db.from('shops').select('*').order('created_at', { ascending: false });
+    allShops = shops || [];
+    renderShops(allShops);
+  }
+
+  function filterShops() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const filtered = allShops.filter(s => s.name.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q));
+    renderShops(filtered);
+  }
+
+  function renderShops(list) {
+    const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', '');
+    const container = document.getElementById('shopsList');
+
+    if (list.length === 0) {
+      container.innerHTML = '<p style="text-align:center; color:#777;">لا توجد نتائج مطابقة.</p>';
+      return;
+    }
+
+    container.innerHTML = list.map(s => {
+      const expired = new Date(s.expires_at) < new Date();
+      const status = (!s.is_active || expired) ? '🔴 متوقف' : '🟢 نشط';
+      const customerUrl = `${baseUrl}index.html?shop=${s.slug}`;
+      const qrUrl = `${baseUrl}index.html?shop=${s.slug}&qr=1`;
+      const barberUrl = `${baseUrl}barber.html?shop=${s.slug}`;
+
+      return `
+        <div class="shop-row">
+          <strong>${s.name}</strong> (${status})<br>
+          <small style="color:#aaa;">PIN: ${s.pin_code} | ينتهي: ${new Date(s.expires_at).toLocaleDateString('ar-DZ')}</small><br>
+          <small style="color:#d4af37;">رابط الزبائن: <a href="${customerUrl}" target="_blank" style="color:#d4af37;">${customerUrl}</a></small><br>
+          <small style="color:#888;">رابط الحلاق: <a href="${barberUrl}" target="_blank" style="color:#fff;">${barberUrl}</a></small>
+          <div class="actions">
+            <button class="btn-qr" onclick="window.open('${qrUrl}', '_blank')">🖨️ توليد QR المحل</button>
+            <button onclick="extendShop('${s.id}', '${s.expires_at}')">+30 يوم</button>
+            <button class="btn-dark" onclick="toggleShop('${s.id}', ${s.is_active})">${s.is_active ? 'إيقاف' : 'تفعيل'}</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function extendShop(id, currentExp) {
+    const base = Math.max(Date.now(), new Date(currentExp).getTime());
+    const newExp = new Date(base + 30 * 86400000).toISOString();
+    await db.from('shops').update({ expires_at: newExp, is_active: true }).eq('id', id);
+    loadShops();
+  }
+
+  async function toggleShop(id, currentStatus) {
+    await db.from('shops').update({ is_active: !currentStatus }).eq('id', id);
+    loadShops();
+  }
+</script>
+</body>
+</html>

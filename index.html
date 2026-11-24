@@ -30,6 +30,15 @@
       .no-print { display: none !important; }
     }
   </style>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "da7fffa9-6818-44d7-a238-c432c4f4c933",
+    });
+  });
+</script>
 </head>
 <body>
 

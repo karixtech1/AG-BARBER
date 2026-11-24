@@ -1,20 +1,25 @@
 name: Daily Barber Reminders
 on:
   schedule:
-    - cron: '0 9 * * *' # يعمل تلقائياً كل يوم الساعة 10:00 صباحاً بتوقيت الجزائر
-  workflow_dispatch:     # للتشغيل اليدوي والاختبار في أي وقت
+    - cron: '0 9 * * *'
+  workflow_dispatch:
 
 jobs:
   send-reminders:
     runs-on: ubuntu-latest
     steps:
       - name: Check inactive customers and notify
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          OS_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+          OS_API_KEY: ${{ secrets.ONESIGNAL_API_KEY }}
         run: |
           node -e '
-          const SUPABASE_URL = "${{ secrets.SUPABASE_URL }}";
-          const SUPABASE_KEY = "${{ secrets.SUPABASE_KEY }}";
-          const OS_APP_ID = "${{ secrets.ONESIGNAL_APP_ID }}";
-          const OS_API_KEY = "${{ secrets.ONESIGNAL_API_KEY }}";
+          const SUPABASE_URL = process.env.SUPABASE_URL.trim();
+          const SUPABASE_KEY = process.env.SUPABASE_KEY.trim();
+          const OS_APP_ID = process.env.OS_APP_ID.trim();
+          const OS_API_KEY = process.env.OS_API_KEY.trim();
 
           async function run() {
             const now = Date.now();
@@ -25,18 +30,17 @@ jobs:
               headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
             });
             const customers = await res.json();
+            console.log("عدد الزبائن الغائبين:", customers.length);
 
             for (const c of customers) {
               if (!c.shops?.is_active) continue;
 
-              // إذا أُرسل له إشعار سابقاً، ننتظر 15 يوماً قبل إعادة الإرسال
               if (c.last_notified_at) {
                 const sinceLastNotify = now - new Date(c.last_notified_at).getTime();
                 if (sinceLastNotify < days15) continue;
               }
 
-              // إرسال الإشعار باسم المحل الخاص بالزبون فقط
-              await fetch("https://api.onesignal.com/notifications", {
+              const pushRes = await fetch("https://api.onesignal.com/notifications", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -50,8 +54,9 @@ jobs:
                   contents: { en: `شعرك طوال يا ${c.full_name}، أرواح نفس الوقت تاع آخر مرة؟` }
                 })
               });
+              const pushData = await pushRes.json();
+              console.log("نتيجة الإرسال لـ", c.full_name, ":", JSON.stringify(pushData));
 
-              // تحديث تاريخ آخر إشعار فقط (تبقى last_visit_at كما هي فلا يختفي من قائمة الغائبين)
               await fetch(`${SUPABASE_URL}/rest/v1/customers?id=eq.${c.id}`, {
                 method: "PATCH",
                 headers: {
@@ -63,5 +68,5 @@ jobs:
               });
             }
           }
-          run();
+          run().catch(err => { console.error(err); process.exit(1); });
           '

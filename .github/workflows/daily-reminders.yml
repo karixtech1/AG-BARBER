@@ -1,0 +1,67 @@
+name: Daily Barber Reminders
+on:
+  schedule:
+    - cron: '0 9 * * *' # يعمل تلقائياً كل يوم الساعة 10:00 صباحاً بتوقيت الجزائر
+  workflow_dispatch:     # للتشغيل اليدوي والاختبار في أي وقت
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check inactive customers and notify
+        run: |
+          node -e '
+          const SUPABASE_URL = "${{ secrets.SUPABASE_URL }}";
+          const SUPABASE_KEY = "${{ secrets.SUPABASE_KEY }}";
+          const OS_APP_ID = "${{ secrets.ONESIGNAL_APP_ID }}";
+          const OS_API_KEY = "${{ secrets.ONESIGNAL_API_KEY }}";
+
+          async function run() {
+            const now = Date.now();
+            const cutoff28 = new Date(now - 28 * 24 * 60 * 60 * 1000).toISOString();
+            const days15 = 15 * 24 * 60 * 60 * 1000;
+
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*,shops(name,is_active)&last_visit_at=lt.${cutoff28}`, {
+              headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+            });
+            const customers = await res.json();
+
+            for (const c of customers) {
+              if (!c.shops?.is_active) continue;
+
+              // إذا أُرسل له إشعار سابقاً، ننتظر 15 يوماً قبل إعادة الإرسال
+              if (c.last_notified_at) {
+                const sinceLastNotify = now - new Date(c.last_notified_at).getTime();
+                if (sinceLastNotify < days15) continue;
+              }
+
+              // إرسال الإشعار باسم المحل الخاص بالزبون فقط
+              await fetch("https://api.onesignal.com/notifications", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Key ${OS_API_KEY}`
+                },
+                body: JSON.stringify({
+                  app_id: OS_APP_ID,
+                  include_aliases: { external_id: [c.id] },
+                  target_channel: "push",
+                  headings: { en: `✂️ ${c.shops.name}` },
+                  contents: { en: `شعرك طوال يا ${c.full_name}، أرواح نفس الوقت تاع آخر مرة؟` }
+                })
+              });
+
+              // تحديث تاريخ آخر إشعار فقط (تبقى last_visit_at كما هي فلا يختفي من قائمة الغائبين)
+              await fetch(`${SUPABASE_URL}/rest/v1/customers?id=eq.${c.id}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                  apikey: SUPABASE_KEY,
+                  Authorization: `Bearer ${SUPABASE_KEY}`
+                },
+                body: JSON.stringify({ last_notified_at: new Date().toISOString() })
+              });
+            }
+          }
+          run();
+          '

@@ -8,14 +8,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "643ff1c9-c02d-48de-a6ed-6be7e7a5b77f",
-        serviceWorkerParam: { scope: "./" },
-        serviceWorkerPath: "./OneSignalSDKWorker.js"
-      });
+   window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "643ff1c9-c02d-48de-a6ed-6be7e7a5b77f",
+      serviceWorkerParam: { scope: "/AG-BARBER/" },
+      serviceWorkerPath: "AG-BARBER/OneSignalSDKWorker.js"
     });
+  });
   </script>
   <style>
     :root { --bg: #0b0b0d; --card: #16161a; --gold: #d4af37; --text: #ffffff; }

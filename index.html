@@ -4,41 +4,173 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FIDELIX - بطاقة الوفاء</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./images/logo.png">
+  <link rel="apple-touch-icon" href="./images/logo.png">
+  <meta name="theme-color" content="#0b0b0d">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "643ff1c9-c02d-48de-a6ed-6be7e7a5b77f",
-      serviceWorkerParam: { scope: "/AG-BARBER/" },
-      serviceWorkerPath: "AG-BARBER/OneSignalSDKWorker.js"
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "643ff1c9-c02d-48de-a6ed-6be7e7a5b77f",
+        serviceWorkerParam: { scope: "/AG-BARBER/" },
+        serviceWorkerPath: "AG-BARBER/OneSignalSDKWorker.js"
+      });
     });
-  });
   </script>
+
   <style>
-    :root { --bg: #0b0b0d; --card: #16161a; --gold: #d4af37; --text: #ffffff; }
+    :root {
+      --bg: #08080a;
+      --card: #131318;
+      --gold: #d4af37;
+      --gold-light: #f3d778;
+      --text: #ffffff;
+      --muted: #8e8e9a;
+    }
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-    body { margin: 0; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
-    .container { width: 100%; max-width: 390px; background: var(--card); border: 1px solid #2a2a32; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
-    .shop-name { color: var(--gold); font-size: 1.4rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }
-    .greeting { font-size: 1.05rem; color: #ccc; margin-bottom: 20px; }
-    input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid #333; background: #0f0f12; color: #fff; font-size: 1rem; text-align: center; }
-    button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--gold); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 6px; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1b1811 0%, var(--bg) 60%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 390px;
+      background: linear-gradient(180deg, #18181f 0%, var(--card) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 26px;
+      padding: 26px 22px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 25px rgba(212, 175, 55, 0.06);
+    }
+    .brand-logo {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 18px;
+      border: 1.5px solid rgba(212, 175, 55, 0.5);
+      margin-bottom: 10px;
+      box-shadow: 0 6px 18px rgba(212, 175, 55, 0.15);
+    }
+    .shop-name {
+      background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .greeting { font-size: 1rem; color: #d0d0d8; margin-bottom: 20px; }
+    input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      border: 1px solid #2b2b36;
+      background: #0d0d11;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--gold); }
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, var(--gold) 0%, #b88f1e 100%);
+      color: #000;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 6px;
+      box-shadow: 0 6px 18px rgba(212, 175, 55, 0.22);
+    }
     .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
-    .stamp { aspect-ratio: 1; border-radius: 50%; border: 2px dashed #3a3a45; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: #3a3a45; }
-    .stamp.active { border: 2px solid var(--gold); background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+    .stamp {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 2px dashed #32323e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: #3a3a48;
+      background: rgba(255,255,255,0.01);
+    }
+    .stamp.active {
+      border: 2px solid var(--gold);
+      background: rgba(212, 175, 55, 0.16);
+      color: var(--gold-light);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+    }
     .stamp.reward { border-color: var(--gold); color: var(--gold); }
-    .goal-bar { display: flex; justify-content: space-between; font-size: 0.9rem; color: #aaa; padding: 10px 14px; background: #0f0f12; border-radius: 12px; margin-bottom: 20px; }
-    .qr-box { background: #fff; padding: 16px; border-radius: 16px; display: inline-block; margin: 12px 0; }
-    .short-code { font-family: monospace; font-size: 1.2rem; letter-spacing: 3px; color: var(--gold); font-weight: bold; }
-    .ios-tip { background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: #ddd; font-size: 0.8rem; padding: 10px; border-radius: 10px; margin-top: 14px; }
+    .goal-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      color: #bbb;
+      padding: 11px 14px;
+      background: #0d0d11;
+      border: 1px solid #23232d;
+      border-radius: 14px;
+      margin-bottom: 18px;
+    }
+    .qr-box {
+      background: #fff;
+      padding: 14px;
+      border-radius: 18px;
+      display: inline-block;
+      margin: 10px 0;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .short-code {
+      font-family: monospace;
+      font-size: 1.25rem;
+      letter-spacing: 3px;
+      color: var(--gold-light);
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .ios-tip {
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      color: #ccc;
+      font-size: 0.8rem;
+      padding: 10px 12px;
+      border-radius: 12px;
+      margin-top: 14px;
+      line-height: 1.5;
+    }
+    .powered-by {
+      margin-top: 18px;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.6px;
+      text-align: center;
+    }
+    .powered-by span { color: rgba(212, 175, 55, 0.75); font-weight: 600; }
     .hidden { display: none; }
     @media print {
       body { background: #fff; color: #000; }
       .container { border: 2px solid #000; box-shadow: none; background: #fff; color: #000; }
-      .shop-name, .greeting { color: #000 !important; }
+      .shop-name { -webkit-text-fill-color: #000; color: #000 !important; }
+      .greeting, .powered-by, .powered-by span { color: #333 !important; }
       .no-print { display: none !important; }
     }
   </style>
@@ -46,6 +178,7 @@
 <body>
 
 <div class="container">
+  <img id="shopLogo" src="./images/logo.png" alt="FIDELIX" class="brand-logo" onerror="this.style.display='none'">
   <div id="shopTitle" class="shop-name">جاري التحميل...</div>
 
   <!-- وضع توليد QR المحل للطباعة -->
@@ -71,16 +204,18 @@
     <div id="stampsGrid" class="grid"></div>
     <div class="goal-bar">
       <span id="progressText">0 / 10</span>
-      <span id="rewardText" style="color: var(--gold);">🎁 حلاقة مجانية</span>
+      <span id="rewardText" style="color: var(--gold); font-weight: 600;">🎁 حلاقة مجانية</span>
     </div>
     <div class="qr-box"><div id="qrcode"></div></div>
     <div id="shortCode" class="short-code"></div>
-    <p style="font-size: 0.8rem; color: #777; margin-top: 12px;">أظهر هذا الكود للحلاق بعد كل حلاقة</p>
+    <p style="font-size: 0.8rem; color: var(--muted); margin-top: 10px;">أظهر هذا الكود للحلاق بعد كل حلاقة</p>
     <div id="iosTip" class="ios-tip hidden">
       📱 لمستخدمي الآيفون: اضغط على زر <strong>المشاركة</strong> ثم <strong>إضافة إلى الشاشة الرئيسية</strong> لتصلك تذكيرات حلاقتك.
     </div>
   </div>
 </div>
+
+<div class="powered-by">Powered by <span>Karix-Tech</span></div>
 
 <script>
   const SUPABASE_URL = 'https://udufhldmcdbncueathiy.supabase.co';
@@ -101,6 +236,12 @@
     currentShop = shop;
     document.getElementById('shopTitle').innerText = '✂️ ' + shop.name;
     document.getElementById('rewardText').innerText = '🎁 ' + shop.reward_text;
+
+    if (shop.logo_url) {
+      document.getElementById('shopLogo').src = shop.logo_url;
+      document.querySelector('link[rel="icon"]').href = shop.logo_url;
+      document.querySelector('link[rel="apple-touch-icon"]').href = shop.logo_url;
+    }
 
     if (isQrMode) {
       const cleanUrl = `${window.location.origin}${window.location.pathname}?shop=${shop.slug}`;
@@ -131,7 +272,6 @@
     const phone = document.getElementById('phone').value.replace(/\D/g, '');
     if (!fullName || phone.length < 9) return alert('أدخل الاسم ورقم الهاتف الصحيح');
 
-    // منع التكرار: إذا غيّر الزبون هاتفه وأدخل رقمه، يسترجع حسابه القديم بنقاطه
     let { data: existing } = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('phone', phone).single();
     if (!existing) {
       const { data: created, error } = await db.from('customers').insert({
@@ -167,7 +307,6 @@
     document.getElementById('qrcode').innerHTML = '';
     new QRCode(document.getElementById('qrcode'), { text: c.short_code, width: 140, height: 140 });
 
-    // ربط هاتف الزبون بـ OneSignal وطلب إذن الإشعارات
     window.OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.login(c.id);
       if (Notification.permission === 'default') {
@@ -175,7 +314,6 @@
       }
     });
 
-    // إظهار تنبيه للآيفون إذا لم تكن البطاقة مضافة للشاشة الرئيسية
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     if (isIOS && !isStandalone) {

@@ -3,31 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة الحلاق</title>
+  <title>FIDELIX - لوحة الحلاق</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./images/logo.png">
+  <link rel="apple-touch-icon" href="./images/logo.png">
+  <meta name="theme-color" content="#0b0b0d">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    :root { --bg: #0b0b0d; --card: #16161a; --gold: #d4af37; --green: #25D366; --red: #e74c3c; --text: #fff; }
+    :root { --bg: #08080a; --card: #131318; --gold: #d4af37; --gold-light: #f3d778; --green: #25D366; --red: #e74c3c; --text: #fff; }
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-    body { margin: 0; background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
-    .app { width: 100%; max-width: 440px; }
-    .card { background: var(--card); border: 1px solid #2a2a32; border-radius: 18px; padding: 20px; margin-bottom: 16px; }
-    h2, h3 { margin: 0 0 12px; color: var(--gold); text-align: center; }
-    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #0f0f12; color: #fff; font-size: 1rem; text-align: center; margin-bottom: 10px; }
-    button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--gold); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 6px; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1b1811 0%, var(--bg) 60%);
+      color: var(--text);
+      padding: 20px 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .app { width: 100%; max-width: 440px; flex: 1; }
+    .card {
+      background: linear-gradient(180deg, #18181f 0%, var(--card) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.22);
+      border-radius: 22px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+    }
+    .brand-logo {
+      width: 68px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1.5px solid rgba(212, 175, 55, 0.5);
+      display: block;
+      margin: 0 auto 12px;
+    }
+    h2, h3 { margin: 0 0 14px; color: var(--gold-light); text-align: center; }
+    input {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1px solid #2b2b36;
+      background: #0d0d11;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    input:focus { border-color: var(--gold); }
+    button {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--gold) 0%, #b88f1e 100%);
+      color: #000;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 6px;
+    }
     .btn-green { background: var(--green); color: #000; }
-    .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 10px 14px; background: var(--card); border-radius: 12px; border: 1px solid #2a2a32; }
-    .logout-btn { width: auto; padding: 6px 12px; margin: 0; font-size: 0.85rem; background: #2a2a32; color: #fff; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--gold); color: var(--gold-light); }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid rgba(212, 175, 55, 0.25);
+    }
+    .top-brand { display: flex; align-items: center; gap: 10px; }
+    .top-brand img { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; border: 1px solid var(--gold); }
+    .logout-btn { width: auto; padding: 7px 14px; margin: 0; font-size: 0.85rem; background: #262630; color: #fff; }
     .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-    .tab { flex: 1; padding: 10px; background: #16161a; color: #aaa; border: 1px solid #2a2a32; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; }
-    .tab.active { background: var(--gold); color: #000; }
-    .customer-box { background: #0f0f12; padding: 14px; border-radius: 12px; margin-top: 12px; border: 1px solid #2a2a32; }
-    .inactive-item { display: flex; justify-content: space-between; align-items: center; background: #0f0f12; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #2a2a32; }
-    .wa-btn { background: var(--green); color: #000; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem; }
+    .tab {
+      flex: 1;
+      padding: 11px 6px;
+      background: var(--card);
+      color: #aaa;
+      border: 1px solid #262630;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
+    .customer-box { background: #0d0d11; padding: 16px; border-radius: 14px; margin-top: 14px; border: 1px solid rgba(212, 175, 55, 0.25); }
+    .inactive-item { display: flex; justify-content: space-between; align-items: center; background: #0d0d11; padding: 12px 14px; border-radius: 14px; margin-bottom: 10px; border: 1px solid #23232d; }
+    .wa-btn { background: var(--green); color: #000; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 0.85rem; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
-    .stat-box { background: #0f0f12; padding: 14px; border-radius: 12px; border: 1px solid #2a2a32; }
-    .stat-num { font-size: 1.6rem; font-weight: bold; color: var(--gold); }
+    .stat-box { background: #0d0d11; padding: 16px; border-radius: 14px; border: 1px solid #23232d; }
+    .stat-num { font-size: 1.7rem; font-weight: bold; color: var(--gold-light); }
+    .powered-by { margin-top: 14px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.35); letter-spacing: 0.6px; text-align: center; }
+    .powered-by span { color: rgba(212, 175, 55, 0.75); font-weight: 600; }
     .hidden { display: none; }
   </style>
 </head>
@@ -36,6 +113,7 @@
 
   <!-- شاشة الدخول -->
   <div id="loginView" class="card">
+    <img id="loginLogo" src="./images/logo.png" alt="FIDELIX" class="brand-logo" onerror="this.style.display='none'">
     <h2 id="shopHeader">لوحة الحلاق ✂️</h2>
     <input type="text" id="slugInput" placeholder="معرّف المحل (مثلاً: ag-barber)" style="direction: ltr;">
     <input type="password" id="pinInput" placeholder="أدخل الكود السري (PIN)">
@@ -46,7 +124,10 @@
   <!-- لوحة التحكم الرئيسية -->
   <div id="dashboardView" class="hidden">
     <div class="top-bar">
-      <strong id="activeShopName" style="color:var(--gold);"></strong>
+      <div class="top-brand">
+        <img id="barberLogo" src="./images/logo.png" alt="FIDELIX" onerror="this.style.display='none'">
+        <strong id="activeShopName" style="color:var(--gold-light);"></strong>
+      </div>
       <button class="logout-btn" onclick="logout()">خروج</button>
     </div>
 
@@ -58,10 +139,10 @@
 
     <!-- التبويب 1: المسح وإضافة النقاط -->
     <div id="tab-scan" class="card">
-      <div id="reader" style="width:100%; border-radius:12px; overflow:hidden; margin-bottom:12px;"></div>
+      <div id="reader" style="width:100%; border-radius:14px; overflow:hidden; margin-bottom:12px;"></div>
       <button class="btn-outline" onclick="toggleCamera()" id="camBtn">تشغيل الكاميرا للمسح</button>
       
-      <hr style="border-color:#2a2a32; margin:16px 0;">
+      <hr style="border-color:#23232d; margin:16px 0;">
       <input type="text" id="manualCode" placeholder="أو اكتب الكود المختصر (مثلاً M4N-8Q5)" style="text-transform:uppercase;">
       <button onclick="findCustomer(document.getElementById('manualCode').value)">بحث عن الزبون</button>
 
@@ -69,7 +150,7 @@
       <div id="customerResult" class="customer-box hidden">
         <h3 id="cName" style="margin-bottom:6px;"></h3>
         <p style="text-align:center; color:#ccc; margin:0 0 12px;">
-          الرصيد الحالي: <strong id="cStamps" style="color:var(--gold); font-size:1.2rem;"></strong>
+          الرصيد الحالي: <strong id="cStamps" style="color:var(--gold-light); font-size:1.25rem;"></strong>
         </p>
         <button id="addStampBtn" onclick="addStamp()">✂️ إضافة نقطة (+1 حلاقة)</button>
         <button id="redeemBtn" class="btn-green hidden" onclick="redeemReward()">🎁 تسليم الحلاقة المجانية (تصفير)</button>
@@ -87,13 +168,15 @@
     <div id="tab-stats" class="card hidden">
       <h3>ملخص الصالون</h3>
       <div class="stats">
-        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div>إجمالي الزبائن</div></div>
-        <div class="stat-box"><div class="stat-num" id="statRewards">0</div><div>حلاقات مجانية</div></div>
+        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div style="font-size:0.85rem; color:#aaa; margin-top:4px;">إجمالي الزبائن</div></div>
+        <div class="stat-box"><div class="stat-num" id="statRewards">0</div><div style="font-size:0.85rem; color:#aaa; margin-top:4px;">حلاقات مجانية</div></div>
       </div>
       <p id="subExpiry" style="text-align:center; color:#888; font-size:0.85rem; margin-top:16px;"></p>
     </div>
   </div>
 </div>
+
+<div class="powered-by">Powered by <span>Karix-Tech</span></div>
 
 <script>
   const SUPABASE_URL = 'https://udufhldmcdbncueathiy.supabase.co';
@@ -108,14 +191,18 @@
   let html5QrCode = null;
   let cameraActive = false;
 
-  // تهيئة شاشة الدخول: إذا كان الرابط يحتوي على ?shop= نخفي حقل المعرّف ونعرض اسم المحل
   async function initLogin() {
     if (urlSlug) {
       document.getElementById('slugInput').value = urlSlug;
       document.getElementById('slugInput').classList.add('hidden');
-      const { data: shop } = await db.from('shops').select('name').eq('slug', urlSlug).single();
+      const { data: shop } = await db.from('shops').select('name, logo_url').eq('slug', urlSlug).single();
       if (shop) {
         document.getElementById('shopHeader').innerText = '✂️ ' + shop.name;
+        if (shop.logo_url) {
+          document.getElementById('loginLogo').src = shop.logo_url;
+          document.querySelector('link[rel="icon"]').href = shop.logo_url;
+          document.querySelector('link[rel="apple-touch-icon"]').href = shop.logo_url;
+        }
       } else {
         document.getElementById('shopHeader').innerText = '⚠️ المحل غير موجود';
         document.getElementById('slugInput').classList.remove('hidden');
@@ -141,7 +228,12 @@
     if (String(shop.pin_code).trim() !== pin) return showErr('الكود السري غير صحيح');
 
     currentShop = shop;
-    document.getElementById('activeShopName').innerText = '✂️ ' + shop.name;
+    document.getElementById('activeShopName').innerText = shop.name;
+    if (shop.logo_url) {
+      document.getElementById('barberLogo').src = shop.logo_url;
+      document.querySelector('link[rel="icon"]').href = shop.logo_url;
+      document.querySelector('link[rel="apple-touch-icon"]').href = shop.logo_url;
+    }
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('dashboardView').classList.remove('hidden');
     document.getElementById('subExpiry').innerText = 'صلاحية الاشتراك حتى: ' + new Date(shop.expires_at).toLocaleDateString('ar-DZ');

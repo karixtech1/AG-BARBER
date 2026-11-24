@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FIDELIX - لوحة الحلاق</title>
-  <link rel="manifest" href="./manifest.json">
+ <link rel="manifest" href="./manifest-barber.json">
   <link rel="icon" type="image/png" href="./images/logo.png">
   <link rel="apple-touch-icon" href="./images/logo.png">
   <meta name="theme-color" content="#0b0b0d">
@@ -277,11 +277,29 @@
     }
   }
 
-  async function findCustomer(code) {
-    code = code.trim().toUpperCase();
-    if (!code) return;
-    const { data: c } = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('short_code', code).single();
-    if (!c) return alert('لم يتم العثور على زبون بهذا الكود');
+ async function findCustomer(input) {
+    const clean = input.trim().toUpperCase();
+    const digitsOnly = clean.replace(/\D/g, '');
+    if (!clean) return;
+
+    // البحث بالكود المختصر أولاً
+    let { data: c } = await db.from('customers')
+      .select('*')
+      .eq('shop_id', currentShop.id)
+      .eq('short_code', clean)
+      .maybeSingle();
+
+    // إذا لم يجده بالكود، يبحث برقم الهاتف
+    if (!c && digitsOnly.length >= 9) {
+      const res = await db.from('customers')
+        .select('*')
+        .eq('shop_id', currentShop.id)
+        .eq('phone', digitsOnly)
+        .maybeSingle();
+      c = res.data;
+    }
+
+    if (!c) return alert('لم يتم العثور على زبون بهذا الكود أو الرقم في هذا المحل');
 
     currentCustomer = c;
     document.getElementById('customerResult').classList.remove('hidden');

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FIDELIX - لوحة الحلاق</title>
- <link rel="manifest" href="./manifest-barber.json">
+  <link rel="manifest" href="./manifest-barber.json">
   <link rel="icon" type="image/png" href="./images/logo.png">
   <link rel="apple-touch-icon" href="./images/logo.png">
   <meta name="theme-color" content="#0b0b0d">
@@ -34,75 +34,45 @@
       box-shadow: 0 15px 35px rgba(0,0,0,0.6);
     }
     .brand-logo {
-      width: 68px;
-      height: 68px;
-      object-fit: cover;
-      border-radius: 16px;
-      border: 1.5px solid rgba(212, 175, 55, 0.5);
-      display: block;
-      margin: 0 auto 12px;
+      width: 68px; height: 68px; object-fit: cover; border-radius: 16px;
+      border: 1.5px solid rgba(212, 175, 55, 0.5); display: block; margin: 0 auto 12px;
     }
     h2, h3 { margin: 0 0 14px; color: var(--gold-light); text-align: center; }
-    input {
-      width: 100%;
-      padding: 13px;
-      border-radius: 12px;
-      border: 1px solid #2b2b36;
-      background: #0d0d11;
-      color: #fff;
-      font-size: 1rem;
-      text-align: center;
-      margin-bottom: 10px;
-      outline: none;
+    input, textarea {
+      width: 100%; padding: 13px; border-radius: 12px; border: 1px solid #2b2b36;
+      background: #0d0d11; color: #fff; font-size: 0.95rem; text-align: center;
+      margin-bottom: 10px; outline: none; font-family: inherit;
     }
-    input:focus { border-color: var(--gold); }
+    textarea { text-align: right; resize: vertical; min-height: 80px; }
+    input:focus, textarea:focus { border-color: var(--gold); }
     button {
-      width: 100%;
-      padding: 13px;
-      border-radius: 12px;
-      border: none;
+      width: 100%; padding: 13px; border-radius: 12px; border: none;
       background: linear-gradient(135deg, var(--gold) 0%, #b88f1e 100%);
-      color: #000;
-      font-weight: bold;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-top: 6px;
+      color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 6px;
     }
     .btn-green { background: var(--green); color: #000; }
     .btn-outline { background: transparent; border: 1.5px solid var(--gold); color: var(--gold-light); }
     .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      padding: 10px 14px;
-      background: var(--card);
-      border-radius: 16px;
-      border: 1px solid rgba(212, 175, 55, 0.25);
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+      padding: 10px 14px; background: var(--card); border-radius: 16px; border: 1px solid rgba(212, 175, 55, 0.25);
     }
     .top-brand { display: flex; align-items: center; gap: 10px; }
     .top-brand img { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; border: 1px solid var(--gold); }
     .logout-btn { width: auto; padding: 7px 14px; margin: 0; font-size: 0.85rem; background: #262630; color: #fff; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
     .tab {
-      flex: 1;
-      padding: 11px 6px;
-      background: var(--card);
-      color: #aaa;
-      border: 1px solid #262630;
-      border-radius: 12px;
-      cursor: pointer;
-      text-align: center;
-      font-weight: bold;
-      font-size: 0.9rem;
+      padding: 10px 4px; background: var(--card); color: #aaa; border: 1px solid #262630;
+      border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; font-size: 0.8rem;
     }
     .tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
     .customer-box { background: #0d0d11; padding: 16px; border-radius: 14px; margin-top: 14px; border: 1px solid rgba(212, 175, 55, 0.25); }
+    .msg-box { background: #0d0d11; padding: 14px; border-radius: 14px; margin-bottom: 16px; border: 1px solid #23232d; }
     .inactive-item { display: flex; justify-content: space-between; align-items: center; background: #0d0d11; padding: 12px 14px; border-radius: 14px; margin-bottom: 10px; border: 1px solid #23232d; }
     .wa-btn { background: var(--green); color: #000; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 0.85rem; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
     .stat-box { background: #0d0d11; padding: 16px; border-radius: 14px; border: 1px solid #23232d; }
     .stat-num { font-size: 1.7rem; font-weight: bold; color: var(--gold-light); }
+    .hint { font-size: 0.78rem; color: #888; margin: 0 0 8px; text-align: right; }
     .powered-by { margin-top: 14px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.35); letter-spacing: 0.6px; text-align: center; }
     .powered-by span { color: rgba(212, 175, 55, 0.75); font-weight: 600; }
     .hidden { display: none; }
@@ -132,8 +102,9 @@
     </div>
 
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('scan', this)">📷 مسح / نقاط</div>
+      <div class="tab active" onclick="switchTab('scan', this)">📷 مسح</div>
       <div class="tab" onclick="switchTab('inactive', this)">🔔 الغائبون</div>
+      <div class="tab" onclick="switchTab('promo', this)">📢 عروض</div>
       <div class="tab" onclick="switchTab('stats', this)">📊 إحصائيات</div>
     </div>
 
@@ -143,10 +114,9 @@
       <button class="btn-outline" onclick="toggleCamera()" id="camBtn">تشغيل الكاميرا للمسح</button>
       
       <hr style="border-color:#23232d; margin:16px 0;">
-      <input type="text" id="manualCode" placeholder="أو اكتب الكود المختصر (مثلاً M4N-8Q5)" style="text-transform:uppercase;">
+      <input type="text" id="manualCode" placeholder="الكود المختصر أو رقم الهاتف" style="text-transform:uppercase;">
       <button onclick="findCustomer(document.getElementById('manualCode').value)">بحث عن الزبون</button>
 
-      <!-- نتيجة البحث -->
       <div id="customerResult" class="customer-box hidden">
         <h3 id="cName" style="margin-bottom:6px;"></h3>
         <p style="text-align:center; color:#ccc; margin:0 0 12px;">
@@ -157,14 +127,29 @@
       </div>
     </div>
 
-    <!-- التبويب 2: الزبائن الغائبون (+28 يوم) -->
+    <!-- التبويب 2: الزبائن الغائبون (+28 يوم) + تخصيص الرسالة -->
     <div id="tab-inactive" class="card hidden">
-      <h3>زبائن غابوا لأكثر من 28 يوماً</h3>
-      <p style="font-size:0.85rem; color:#aaa; text-align:center; margin-top:0;">اضغط على واتساب لإرسال تذكير جاهز باسم الزبون</p>
+      <h3>تخصيص رسالة التذكير</h3>
+      <div class="msg-box">
+        <p class="hint">اكتب النص الذي يُرسل تلقائياً (وفي واتساب) للزبائن الغائبين. استخدم <strong>{name}</strong> ليوضع اسم الزبون تلقائياً:</p>
+        <textarea id="reminderMsgInput" placeholder="مثلاً: سلام {name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة ✂️"></textarea>
+        <button class="btn-outline" onclick="saveReminderMsg()" style="padding:10px; font-size:0.9rem;">💾 حفظ نص الرسالة</button>
+      </div>
+
+      <h3>الغائبون لأكثر من 28 يوماً</h3>
       <div id="inactiveList">جاري التحميل...</div>
     </div>
 
-    <!-- التبويب 3: الإحصائيات -->
+    <!-- التبويب 3: إرسال عرض خاص / برومو لكل الزبائن -->
+    <div id="tab-promo" class="card hidden">
+      <h3>📢 إرسال عرض لكل الزبائن</h3>
+      <p class="hint" style="text-align:center; margin-bottom:14px;">سيصل هذا الإشعار فوراً إلى شاشة قفل جميع زبائن محلك المشتركين.</p>
+      <input type="text" id="promoTitle" placeholder="عنوان العرض (مثلاً: تخفيض خاص بمناسبة العيد 🔥)">
+      <textarea id="promoBody" placeholder="اكتب تفاصيل العرض أو التخفيض هنا..."></textarea>
+      <button id="sendPromoBtn" onclick="sendPromo()">🚀 إرسال الإشعار لجميع الزبائن الآن</button>
+    </div>
+
+    <!-- التبويب 4: الإحصائيات -->
     <div id="tab-stats" class="card hidden">
       <h3>ملخص الصالون</h3>
       <div class="stats">
@@ -192,8 +177,10 @@
   let cameraActive = false;
 
   async function initLogin() {
+    const savedSlug = urlSlug || localStorage.getItem('barber_last_slug') || '';
+    if (savedSlug) document.getElementById('slugInput').value = savedSlug;
+
     if (urlSlug) {
-      document.getElementById('slugInput').value = urlSlug;
       document.getElementById('slugInput').classList.add('hidden');
       const { data: shop } = await db.from('shops').select('name, logo_url').eq('slug', urlSlug).single();
       if (shop) {
@@ -228,7 +215,9 @@
     if (String(shop.pin_code).trim() !== pin) return showErr('الكود السري غير صحيح');
 
     currentShop = shop;
+    localStorage.setItem('barber_last_slug', slug);
     document.getElementById('activeShopName').innerText = shop.name;
+    document.getElementById('reminderMsgInput').value = shop.reminder_message || `سلام {name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة في ${shop.name} ✂️`;
     if (shop.logo_url) {
       document.getElementById('barberLogo').src = shop.logo_url;
       document.querySelector('link[rel="icon"]').href = shop.logo_url;
@@ -255,10 +244,59 @@
   function switchTab(tab, el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
-    ['scan', 'inactive', 'stats'].forEach(t => document.getElementById('tab-' + t).classList.add('hidden'));
+    ['scan', 'inactive', 'promo', 'stats'].forEach(t => document.getElementById('tab-' + t).classList.add('hidden'));
     document.getElementById('tab-' + tab).classList.remove('hidden');
     if (tab !== 'scan' && cameraActive) toggleCamera();
-    if (tab !== 'scan') loadData();
+    if (tab === 'inactive' || tab === 'stats') loadData();
+  }
+
+  async function saveReminderMsg() {
+    const msg = document.getElementById('reminderMsgInput').value.trim();
+    if (!msg) return alert('اكتب نص الرسالة أولاً');
+    await db.from('shops').update({ reminder_message: msg }).eq('id', currentShop.id);
+    currentShop.reminder_message = msg;
+    alert('تم حفظ نص رسالة الغائبين بنجاح!');
+    loadData();
+  }
+
+  async function sendPromo() {
+    const title = document.getElementById('promoTitle').value.trim();
+    const message = document.getElementById('promoBody').value.trim();
+    if (!message) return alert('يرجى كتابة نص العرض أولاً');
+    if (!confirm('هل أنت متأكد من إرسال هذا العرض لجميع زبائن محلك الآن؟')) return;
+
+    const btn = document.getElementById('sendPromoBtn');
+    btn.disabled = true;
+    btn.innerText = '⏳ جاري الإرسال...';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-promo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({
+          shop_id: currentShop.id,
+          pin_code: currentShop.pin_code,
+          title: title || `🔥 عرض خاص من ${currentShop.name}`,
+          message
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`تم إرسال العرض بنجاح إلى ${data.count} زبون!`);
+        document.getElementById('promoTitle').value = '';
+        document.getElementById('promoBody').value = '';
+      } else {
+        alert('تعذر الإرسال: ' + (data.error || 'خطأ غير معروف'));
+      }
+    } catch (e) {
+      alert('حدث خطأ في الاتصال بالخادم');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = '🚀 إرسال الإشعار لجميع الزبائن الآن';
+    }
   }
 
   async function toggleCamera() {
@@ -277,28 +315,16 @@
     }
   }
 
- async function findCustomer(input) {
+  async function findCustomer(input) {
     const clean = input.trim().toUpperCase();
     const digitsOnly = clean.replace(/\D/g, '');
     if (!clean) return;
 
-    // البحث بالكود المختصر أولاً
-    let { data: c } = await db.from('customers')
-      .select('*')
-      .eq('shop_id', currentShop.id)
-      .eq('short_code', clean)
-      .maybeSingle();
-
-    // إذا لم يجده بالكود، يبحث برقم الهاتف
+    let { data: c } = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('short_code', clean).maybeSingle();
     if (!c && digitsOnly.length >= 9) {
-      const res = await db.from('customers')
-        .select('*')
-        .eq('shop_id', currentShop.id)
-        .eq('phone', digitsOnly)
-        .maybeSingle();
+      const res = await db.from('customers').select('*').eq('shop_id', currentShop.id).eq('phone', digitsOnly).maybeSingle();
       c = res.data;
     }
-
     if (!c) return alert('لم يتم العثور على زبون بهذا الكود أو الرقم في هذا المحل');
 
     currentCustomer = c;
@@ -350,8 +376,9 @@
       return;
     }
 
+    const template = currentShop.reminder_message || `سلام {name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة في ${currentShop.name} ✂️`;
     container.innerHTML = inactive.map(c => {
-      const msg = encodeURIComponent(`سلام ${c.full_name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة في ${currentShop.name} ✂️`);
+      const msg = encodeURIComponent(template.replace(/\{name\}/g, c.full_name));
       const waLink = `https://wa.me/${formatDzPhone(c.phone)}?text=${msg}`;
       return `
         <div class="inactive-item">

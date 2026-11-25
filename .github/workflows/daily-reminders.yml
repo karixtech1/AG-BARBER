@@ -20,13 +20,14 @@ jobs:
           const SUPABASE_KEY = process.env.SUPABASE_KEY.trim();
           const OS_APP_ID = process.env.OS_APP_ID.trim();
           const OS_API_KEY = process.env.OS_API_KEY.trim();
+          const SITE_BASE = "https://karixtech1.github.io/FIDELIX";
 
           async function run() {
             const now = Date.now();
             const cutoff28 = new Date(now - 28 * 24 * 60 * 60 * 1000).toISOString();
             const days15 = 15 * 24 * 60 * 60 * 1000;
 
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*,shops(name,is_active,reminder_message)&last_visit_at=lt.${cutoff28}`, {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*,shops(slug,name,is_active,reminder_message)&last_visit_at=lt.${cutoff28}`, {
               headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
             });
             const customers = await res.json();
@@ -42,6 +43,8 @@ jobs:
 
               const msgTemplate = c.shops.reminder_message || "شعرك طوال يا {name}، أرواح نفس الوقت تاع آخر مرة؟";
               const finalMsg = msgTemplate.replace(/\{name\}/g, c.full_name);
+              const heading = `✂️ ${c.shops.name}`;
+              const targetUrl = `${SITE_BASE}/index.html?shop=${encodeURIComponent(c.shops.slug)}&notif_title=${encodeURIComponent(heading)}&notif_msg=${encodeURIComponent(finalMsg)}`;
 
               const pushRes = await fetch("https://api.onesignal.com/notifications", {
                 method: "POST",
@@ -53,8 +56,9 @@ jobs:
                   app_id: OS_APP_ID,
                   include_aliases: { external_id: [c.id] },
                   target_channel: "push",
-                  headings: { en: `✂️ ${c.shops.name}` },
-                  contents: { en: finalMsg }
+                  headings: { en: heading },
+                  contents: { en: finalMsg },
+                  url: targetUrl
                 })
               });
               const pushData = await pushRes.json();

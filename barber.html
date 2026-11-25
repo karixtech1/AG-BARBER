@@ -52,17 +52,26 @@
     }
     .btn-green { background: var(--green); color: #000; }
     .btn-outline { background: transparent; border: 1.5px solid var(--gold); color: var(--gold-light); }
+    .sos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .sos-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 12px 8px; border-radius: 14px; text-decoration: none; font-weight: bold;
+      text-align: center; transition: transform 0.15s, opacity 0.15s;
+    }
+    .sos-btn:active { transform: scale(0.98); }
+    .sos-wa { background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25); }
+    .sos-gmail { background: #1c1c24; color: #fff; border: 1.5px solid #ea4335; box-shadow: 0 4px 14px rgba(234, 67, 53, 0.18); }
     .top-bar {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
       padding: 10px 14px; background: var(--card); border-radius: 16px; border: 1px solid rgba(212, 175, 55, 0.25);
     }
-    .top-brand { display: flex; align-items: center; gap: 10px; }
-    .top-brand img { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; border: 1px solid var(--gold); }
+    .top-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .top-brand img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 1.5px solid var(--gold); }
     .logout-btn { width: auto; padding: 7px 14px; margin: 0; font-size: 0.85rem; background: #262630; color: #fff; }
-    .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
+    .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 16px; }
     .tab {
-      padding: 10px 4px; background: var(--card); color: #aaa; border: 1px solid #262630;
-      border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; font-size: 0.8rem;
+      padding: 10px 2px; background: var(--card); color: #aaa; border: 1px solid #262630;
+      border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; font-size: 0.72rem;
     }
     .tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
     .customer-box { background: #0d0d11; padding: 16px; border-radius: 14px; margin-top: 14px; border: 1px solid rgba(212, 175, 55, 0.25); }
@@ -86,7 +95,7 @@
     <img id="loginLogo" src="./images/logo.png" alt="FIDELIX" class="brand-logo" onerror="this.style.display='none'">
     <h2 id="shopHeader">لوحة الحلاق ✂️</h2>
     <input type="text" id="slugInput" placeholder="معرّف المحل (مثلاً: ag-barber)" style="direction: ltr;">
-    <input type="password" id="pinInput" placeholder="أدخل الكود السري (PIN)">
+    <input type="password" id="pinInput" placeholder="أدخل الكود السري (PIN)" onkeydown="if(event.key==='Enter') login()">
     <button onclick="login()">دخول</button>
     <p id="loginError" style="color:var(--red); text-align:center; font-size:0.9rem; margin-bottom:0;"></p>
   </div>
@@ -94,9 +103,12 @@
   <!-- لوحة التحكم الرئيسية -->
   <div id="dashboardView" class="hidden">
     <div class="top-bar">
-      <div class="top-brand">
+      <div class="top-brand" onclick="triggerBarberLogoChange()" title="اضغط لتغيير لوغو المحل">
         <img id="barberLogo" src="./images/logo.png" alt="FIDELIX" onerror="this.style.display='none'">
-        <strong id="activeShopName" style="color:var(--gold-light);"></strong>
+        <div>
+          <strong id="activeShopName" style="color:var(--gold-light); display:block;"></strong>
+          <small style="font-size:0.7rem; color:#888;">🖼️ اضغط لتغيير اللوغو</small>
+        </div>
       </div>
       <button class="logout-btn" onclick="logout()">خروج</button>
     </div>
@@ -105,13 +117,15 @@
       <div class="tab active" onclick="switchTab('scan', this)">📷 مسح</div>
       <div class="tab" onclick="switchTab('inactive', this)">🔔 الغائبون</div>
       <div class="tab" onclick="switchTab('promo', this)">📢 عروض</div>
-      <div class="tab" onclick="switchTab('stats', this)">📊 إحصائيات</div>
+      <div class="tab" onclick="switchTab('stats', this)">📊 الصالون</div>
+      <div class="tab" onclick="switchTab('support', this)">🆘 دعم</div>
     </div>
 
     <!-- التبويب 1: المسح وإضافة النقاط -->
     <div id="tab-scan" class="card">
       <div id="reader" style="width:100%; border-radius:14px; overflow:hidden; margin-bottom:12px;"></div>
       <button class="btn-outline" onclick="toggleCamera()" id="camBtn">تشغيل الكاميرا للمسح</button>
+      <button class="btn-outline" style="margin-top:8px;" onclick="printShopQr()">🖨️ طباعة كود QR الخاص بالمحل</button>
       
       <hr style="border-color:#23232d; margin:16px 0;">
       <input type="text" id="manualCode" placeholder="الكود المختصر أو رقم الهاتف" style="text-transform:uppercase;">
@@ -149,17 +163,52 @@
       <button id="sendPromoBtn" onclick="sendPromo()">🚀 إرسال الإشعار لجميع الزبائن الآن</button>
     </div>
 
-    <!-- التبويب 4: الإحصائيات -->
+    <!-- التبويب 4: الإحصائيات وهوية المحل -->
     <div id="tab-stats" class="card hidden">
       <h3>ملخص الصالون</h3>
       <div class="stats">
         <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div style="font-size:0.85rem; color:#aaa; margin-top:4px;">إجمالي الزبائن</div></div>
         <div class="stat-box"><div class="stat-num" id="statRewards">0</div><div style="font-size:0.85rem; color:#aaa; margin-top:4px;">حلاقات مجانية</div></div>
       </div>
+
+      <hr style="border-color:#23232d; margin:18px 0;">
+      <h3>🖼️ هوية ولوغو المحل</h3>
+      <img id="settingsLogoPreview" src="./images/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+      <p class="hint" style="text-align:center;">سيظهر هذا اللوغو في لوحتك، في بطاقة زبائنك، وكأيقونة للتطبيق عند إضافته للشاشة الرئيسية.</p>
+      <button class="btn-outline" onclick="triggerBarberLogoChange()">🖼️ اختيار / تغيير لوغو المحل</button>
+
       <p id="subExpiry" style="text-align:center; color:#888; font-size:0.85rem; margin-top:16px;"></p>
+    </div>
+
+    <!-- التبويب 5: طلب المساعدة والشكاوى (SOS) -->
+    <div id="tab-support" class="card hidden">
+      <h3>🆘 طلب مساعدة أو استفسار</h3>
+      <p class="hint" style="text-align:center; margin-bottom:12px;">تواصل مباشرة مع فريق <strong>Karix-Tech</strong> لأي صيانة أو استفسار:</p>
+
+      <div class="sos-grid">
+        <a id="sosWhatsappBtn" href="https://wa.me/213549838960" target="_blank" class="sos-btn sos-wa">
+          <span style="font-size:0.9rem;">💬 Contact WhatsApp</span>
+          <span style="font-family:monospace; font-size:0.85rem; margin-top:3px;">0549838960</span>
+        </a>
+        <a id="sosGmailBtn" href="mailto:karixtech1@gmail.com" class="sos-btn sos-gmail">
+          <span style="font-size:0.9rem; color:#f28b82;">✉️ Gmail</span>
+          <span style="font-size:0.74rem; color:#ccc; margin-top:3px; word-break:break-all;">karixtech1@gmail.com</span>
+        </a>
+      </div>
+
+      <hr style="border-color:#23232d; margin:14px 0;">
+      <p class="hint" style="text-align:center; margin-bottom:8px;">أو أرسل تذكرة مساعدة داخل النظام:</p>
+      <input type="text" id="supSubject" placeholder="الموضوع (مثلاً: طلب صيانة / استفسار)">
+      <textarea id="supMsg" placeholder="اشرح طلبك أو مشكلتك بالتفصيل..."></textarea>
+      <button onclick="sendSupport()">📩 إرسال الطلب للإدارة</button>
+      <hr style="border-color:#23232d; margin:16px 0;">
+      <div id="myTickets"></div>
     </div>
   </div>
 </div>
+
+<!-- حقل اختيار صورة اللوغو -->
+<input type="file" id="barberLogoInput" accept="image/*" class="hidden">
 
 <div class="powered-by">Powered by <span>Karix-Tech</span></div>
 
@@ -176,6 +225,90 @@
   let html5QrCode = null;
   let cameraActive = false;
 
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  function applyShopBranding(shop) {
+    const resolvedLogo = shop.logo_url || new URL('./images/logo.png', window.location.href).href;
+
+    ['loginLogo', 'barberLogo', 'settingsLogoPreview'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.src = resolvedLogo;
+        el.style.display = 'block';
+      }
+    });
+
+    const fav = document.querySelector('link[rel="icon"]');
+    const apple = document.querySelector('link[rel="apple-touch-icon"]');
+    if (fav) fav.href = resolvedLogo;
+    if (apple) apple.href = resolvedLogo;
+    document.title = `${shop.name} - لوحة الحلاق`;
+
+    const manifestObj = {
+      name: `${shop.name} - لوحة الحلاق`,
+      short_name: shop.name.slice(0, 15),
+      start_url: window.location.href,
+      display: "standalone",
+      background_color: "#08080a",
+      theme_color: "#08080a",
+      icons: [
+        { src: resolvedLogo, sizes: "192x192", type: "image/png" },
+        { src: resolvedLogo, sizes: "512x512", type: "image/png" }
+      ]
+    };
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    if (manifestLink) {
+      const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+      manifestLink.href = URL.createObjectURL(blob);
+    }
+  }
+
+  function compressLogo(file) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 200;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function triggerBarberLogoChange() {
+    if (!currentShop) return;
+    document.getElementById('barberLogoInput').click();
+  }
+
+  document.getElementById('barberLogoInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !currentShop) return;
+    const logo_url = await compressLogo(file);
+    e.target.value = '';
+    if (!logo_url) return;
+
+    const { error } = await db.from('shops').update({ logo_url }).eq('id', currentShop.id);
+    if (error) return alert('حدث خطأ أثناء حفظ اللوغو: ' + error.message);
+
+    currentShop.logo_url = logo_url;
+    applyShopBranding(currentShop);
+    alert('✅ تم تحديث لوغو المحل بنجاح! سيظهر الآن عندك وعند جميع زبائنك.');
+  });
+
   async function initLogin() {
     const savedSlug = urlSlug || localStorage.getItem('barber_last_slug') || '';
     if (savedSlug) document.getElementById('slugInput').value = savedSlug;
@@ -185,11 +318,7 @@
       const { data: shop } = await db.from('shops').select('name, logo_url').eq('slug', urlSlug).single();
       if (shop) {
         document.getElementById('shopHeader').innerText = '✂️ ' + shop.name;
-        if (shop.logo_url) {
-          document.getElementById('loginLogo').src = shop.logo_url;
-          document.querySelector('link[rel="icon"]').href = shop.logo_url;
-          document.querySelector('link[rel="apple-touch-icon"]').href = shop.logo_url;
-        }
+        applyShopBranding(shop);
       } else {
         document.getElementById('shopHeader').innerText = '⚠️ المحل غير موجود';
         document.getElementById('slugInput').classList.remove('hidden');
@@ -209,7 +338,7 @@
     const { data: shop } = await db.from('shops').select('*').eq('slug', slug).single();
 
     if (!shop) return showErr('معرّف المحل غير موجود');
-    if (!shop.is_active || new Date(shop.expires_at) < new Date()) {
+    if (!shop.is_active || (shop.plan_type !== 'lifetime' && new Date(shop.expires_at) < new Date())) {
       return showErr('انتهت صلاحية الاشتراك، يرجى التواصل للتجديد.');
     }
     if (String(shop.pin_code).trim() !== pin) return showErr('الكود السري غير صحيح');
@@ -218,14 +347,15 @@
     localStorage.setItem('barber_last_slug', slug);
     document.getElementById('activeShopName').innerText = shop.name;
     document.getElementById('reminderMsgInput').value = shop.reminder_message || `سلام {name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة في ${shop.name} ✂️`;
-    if (shop.logo_url) {
-      document.getElementById('barberLogo').src = shop.logo_url;
-      document.querySelector('link[rel="icon"]').href = shop.logo_url;
-      document.querySelector('link[rel="apple-touch-icon"]').href = shop.logo_url;
-    }
+    document.getElementById('sosWhatsappBtn').href = `https://wa.me/213549838960?text=${encodeURIComponent('سلام KARIX-Tech، معكم محل: ' + shop.name)}`;
+    document.getElementById('sosGmailBtn').href = `mailto:karixtech1@gmail.com?subject=${encodeURIComponent('طلب دعم فني - ' + shop.name)}`;
+    applyShopBranding(shop);
+
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('dashboardView').classList.remove('hidden');
-    document.getElementById('subExpiry').innerText = 'صلاحية الاشتراك حتى: ' + new Date(shop.expires_at).toLocaleDateString('ar-DZ');
+    document.getElementById('subExpiry').innerText = shop.plan_type === 'lifetime'
+      ? '👑 ترخيص دائم (مدى الحياة)'
+      : 'صلاحية الاشتراك حتى: ' + new Date(shop.expires_at).toLocaleDateString('ar-DZ');
     loadData();
   }
 
@@ -239,15 +369,22 @@
     document.getElementById('loginView').classList.remove('hidden');
   }
 
+  function printShopQr() {
+    if (!currentShop) return;
+    const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    window.open(`${baseUrl}index.html?shop=${currentShop.slug}&qr=1`, '_blank');
+  }
+
   function showErr(msg) { document.getElementById('loginError').innerText = msg; }
 
   function switchTab(tab, el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
-    ['scan', 'inactive', 'promo', 'stats'].forEach(t => document.getElementById('tab-' + t).classList.add('hidden'));
+    ['scan', 'inactive', 'promo', 'stats', 'support'].forEach(t => document.getElementById('tab-' + t).classList.add('hidden'));
     document.getElementById('tab-' + tab).classList.remove('hidden');
     if (tab !== 'scan' && cameraActive) toggleCamera();
     if (tab === 'inactive' || tab === 'stats') loadData();
+    if (tab === 'support') loadMyTickets();
   }
 
   async function saveReminderMsg() {
@@ -297,6 +434,40 @@
       btn.disabled = false;
       btn.innerText = '🚀 إرسال الإشعار لجميع الزبائن الآن';
     }
+  }
+
+  async function sendSupport() {
+    const subject = document.getElementById('supSubject').value.trim();
+    const message = document.getElementById('supMsg').value.trim();
+    if (!subject || !message) return alert('يرجى ملء الموضوع وتفاصيل الطلب');
+    const { error } = await db.from('support_tickets').insert({
+      shop_id: currentShop.id,
+      shop_name: currentShop.name,
+      subject,
+      message
+    });
+    if (error) return alert('حدث خطأ أثناء الإرسال، حاول مجدداً');
+    document.getElementById('supSubject').value = '';
+    document.getElementById('supMsg').value = '';
+    alert('تم إرسال طلبك بنجاح! سيتواصل معك فريق Karix-Tech قريباً.');
+    loadMyTickets();
+  }
+
+  async function loadMyTickets() {
+    const { data } = await db.from('support_tickets').select('*').eq('shop_id', currentShop.id).order('created_at', { ascending: false });
+    const box = document.getElementById('myTickets');
+    if (!data || data.length === 0) {
+      box.innerHTML = '<p style="text-align:center; color:#777; font-size:0.85rem;">لا توجد طلبات سابقة.</p>';
+      return;
+    }
+    box.innerHTML = data.map(t => `
+      <div class="msg-box" style="margin-bottom:8px; text-align:right;">
+        <strong style="color:var(--gold-light);">${escapeHtml(t.subject)}</strong>
+        <small style="float:left; color:${t.status === 'open' ? '#f39c12' : '#25D366'};">${t.status === 'open' ? 'قيد المراجعة' : 'تم الرد ✅'}</small>
+        <p style="font-size:0.85rem; color:#ccc; margin:6px 0 0;">${escapeHtml(t.message)}</p>
+        ${t.admin_reply ? `<p style="font-size:0.85rem; color:#25D366; margin:6px 0 0;">رد الإدارة: ${escapeHtml(t.admin_reply)}</p>` : ''}
+      </div>
+    `).join('');
   }
 
   async function toggleCamera() {
@@ -355,7 +526,7 @@
   }
 
   function formatDzPhone(p) {
-    p = p.replace(/\D/g, '');
+    p = String(p || '').replace(/\D/g, '');
     if (p.startsWith('0')) return '213' + p.slice(1);
     return p;
   }
@@ -383,7 +554,7 @@
       return `
         <div class="inactive-item">
           <div>
-            <strong>${c.full_name}</strong><br>
+            <strong>${escapeHtml(c.full_name)}</strong><br>
             <small style="color:#888;">آخر زيارة: ${new Date(c.last_visit_at).toLocaleDateString('ar-DZ')}</small>
           </div>
           <a href="${waLink}" target="_blank" class="wa-btn">واتساب 💬</a>

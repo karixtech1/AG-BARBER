@@ -232,18 +232,37 @@ const shopSlug = urlSlug || localStorage.getItem('last_shop_slug') || 'barber-vi
 
   async function init() {
     const { data: shop } = await db.from('shops').select('*').eq('slug', shopSlug).single();
-    if (!shop || !shop.is_active || new Date(shop.expires_at) < new Date()) {
+  if (!shop || !shop.is_active || (shop.plan_type !== 'lifetime' && new Date(shop.expires_at) < new Date())) {
       document.getElementById('shopTitle').innerText = 'الخدمة غير متاحة حالياً';
       return;
     }
     currentShop = shop;
     document.getElementById('shopTitle').innerText = '✂️ ' + shop.name;
     document.getElementById('rewardText').innerText = '🎁 ' + shop.reward_text;
+const resolvedLogo = shop.logo_url || new URL('./images/logo.png', window.location.href).href;
+    const logoImg = document.getElementById('shopLogo');
+    logoImg.src = resolvedLogo;
+    logoImg.style.display = 'inline-block';
+    document.querySelector('link[rel="icon"]').href = resolvedLogo;
+    document.querySelector('link[rel="apple-touch-icon"]').href = resolvedLogo;
+    document.title = `${shop.name} - بطاقة الوفاء`;
 
-    if (shop.logo_url) {
-      document.getElementById('shopLogo').src = shop.logo_url;
-      document.querySelector('link[rel="icon"]').href = shop.logo_url;
-      document.querySelector('link[rel="apple-touch-icon"]').href = shop.logo_url;
+    const manifestObj = {
+      name: `${shop.name} - بطاقة الوفاء`,
+      short_name: shop.name.slice(0, 15),
+      start_url: window.location.href,
+      display: "standalone",
+      background_color: "#08080a",
+      theme_color: "#08080a",
+      icons: [
+        { src: resolvedLogo, sizes: "192x192", type: "image/png" },
+        { src: resolvedLogo, sizes: "512x512", type: "image/png" }
+      ]
+    };
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    if (manifestLink) {
+      const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+      manifestLink.href = URL.createObjectURL(blob);
     }
 
     if (isQrMode) {

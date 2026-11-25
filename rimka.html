@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIDELIX - لوحة الإدارة الشاملة</title>
+  <link id="favIcon" rel="icon" type="image/png" href="./images/logo.png">
+  <meta name="theme-color" content="#08080a">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    :root { --bg: #08080a; --card: #141419; --accent: #d4af37; --green: #25D366; --red: #e74c3c; --orange: #f39c12; --blue: #3498db; --text: #fff; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; }
+    .wrap { max-width: 980px; margin: auto; }
+    .box { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid #262630; margin-bottom: 18px; }
+    h2, h3 { margin-top: 0; color: var(--accent); }
+    input, select, textarea, button { width: 100%; padding: 11px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #2e2e3a; background: #0d0d11; color: #fff; font-size: 0.92rem; font-family: inherit; }
+    textarea { min-height: 75px; resize: vertical; }
+    button { background: var(--accent); color: #000; font-weight: bold; cursor: pointer; border: none; transition: 0.15s; }
+    button:hover { opacity: 0.9; }
+    .btn-dark { background: #262630; color: #fff; }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat-card { background: #0d0d11; padding: 15px 10px; border-radius: 14px; border: 1px solid #262630; text-align: center; }
+    .stat-num { font-size: 1.65rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: 0.78rem; color: #aaa; margin-top: 4px; }
+    .nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+    .nav-btn { flex: 1; min-width: 105px; padding: 11px 6px; background: var(--card); color: #aaa; border: 1px solid #262630; border-radius: 12px; cursor: pointer; font-weight: bold; text-align: center; font-size: 0.82rem; }
+    .nav-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+    .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 16px; background: var(--card); border-radius: 16px; border: 1px solid #262630; gap: 10px; flex-wrap: wrap; }
+    .top-brand { display: flex; align-items: center; gap: 12px; }
+    .top-brand img { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 1px solid var(--accent); }
+    .shop-row { background: #0d0d11; padding: 16px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #262630; }
+    .shop-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .shop-thumb { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--accent); }
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+    .b-green { background: rgba(37,211,102,0.15); color: var(--green); }
+    .b-red { background: rgba(231,76,60,0.15); color: var(--red); }
+    .b-orange { background: rgba(243,156,18,0.15); color: var(--orange); }
+    .b-gold { background: rgba(212,175,55,0.2); color: var(--accent); }
+    .b-blue { background: rgba(52,152,219,0.2); color: var(--blue); }
+    .actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .actions button, .actions a { flex: 1; min-width: 85px; margin: 0; padding: 8px 6px; font-size: 0.8rem; text-align: center; text-decoration: none; border-radius: 8px; font-weight: bold; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 10px; border-bottom: 1px solid #262630; text-align: right; }
+    th { color: var(--accent); background: #0d0d11; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: flex; justify-content: center; align-items: center; padding: 16px; z-index: 999; overflow-y: auto; }
+    .modal-card { width: 100%; max-width: 650px; max-height: 92vh; overflow-y: auto; background: var(--card); border: 1px solid var(--accent); border-radius: 18px; padding: 20px; }
+    .field-label { display: block; font-size: 0.8rem; color: #aaa; margin-bottom: 4px; }
+    .hidden { display: none !important; }
+    .powered-by { margin-top: 20px; font-size: 0.75rem; color: rgba(255,255,255,0.35); text-align: center; }
+    .powered-by span { color: var(--accent); font-weight: 600; }
+
+    /* تنسيق نافذة وصل PDF (نسختان في صفحة A4 واحدة) */
+    .receipt-sheet {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 10px;
+    }
+    .receipt-copy {
+      border: 2px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px 16px;
+      background: #ffffff;
+    }
+    .receipt-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #b88f1e;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .receipt-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 14px;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+    .receipt-grid div {
+      padding: 4px 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+    .receipt-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px dashed #94a3b8;
+      padding-top: 8px;
+      font-size: 0.8rem;
+      color: #334155;
+    }
+    .cut-line {
+      text-align: center;
+      border-top: 2px dashed #64748b;
+      margin: 14px 0;
+      position: relative;
+      color: #64748b;
+      font-size: 0.78rem;
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+      #receiptPrintArea {
+        position: fixed;
+        inset: 0;
+        background: #fff !important;
+        padding: 8mm !important;
+        margin: 0 !important;
+        z-index: 99999;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- شاشة الدخول -->
+  <div id="authBox" class="box" style="max-width:400px; margin: 60px auto;">
+    <img id="authLogo" src="./images/logo.png" alt="FIDELIX" style="width:72px; height:72px; border-radius:16px; display:block; margin:0 auto 12px; border:1.5px solid var(--accent);" onerror="this.style.display='none'">
+    <h2 style="text-align:center;">لوحة الإدارة (FIDELIX)</h2>
+    <input type="password" id="adminPass" placeholder="أدخل كلمة المرور" onkeydown="if(event.key==='Enter') unlock()">
+    <button onclick="unlock()">دخول آمن 🔒</button>
+  </div>
+
+  <!-- لوحة التحكم الرئيسية -->
+  <div id="mainBox" class="hidden">
+    <div class="top-header">
+      <div class="top-brand">
+        <img id="headerLogo" src="./images/logo.png" onerror="this.style.display='none'">
+        <div>
+          <strong style="color:var(--accent); font-size:1.1rem;">FIDELIX SaaS Admin</strong><br>
+          <small style="color:#888;">تطوير شركة KARIX-Tech | 0549838960</small>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-green" style="width:auto; padding:8px 14px; margin:0;" onclick="openQrScanner()">📷 مسح QR محل</button>
+        <button class="btn-dark" style="width:auto; padding:8px 14px; margin:0;" onclick="location.reload()">خروج</button>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-btn active" onclick="switchView('dashboard', this)">📊 الداشبورد</div>
+      <div class="nav-btn" onclick="switchView('reports', this)">📈 التقارير والإحصائيات</div>
+      <div class="nav-btn" onclick="switchView('shops', this)">✂️ المحلات والدفعات</div>
+      <div class="nav-btn" onclick="switchView('demo', this)">🧪 زبون التجربة (1/محل)</div>
+      <div class="nav-btn" onclick="switchView('tickets', this)">🆘 الدعم <span id="ticketBadge"></span></div>
+      <div class="nav-btn" onclick="switchView('settings', this)">⚙️ الإعدادات</div>
+    </div>
+
+    <!-- 1. الداشبورد -->
+    <div id="view-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="stTotal">0</div><div class="stat-label">إجمالي المحلات</div></div>
+        <div class="stat-card"><div class="stat-num" id="stActive" style="color:var(--green);">0</div><div class="stat-label">مشتركون نشطون</div></div>
+        <div class="stat-card"><div class="stat-num" id="stLifetime" style="color:var(--accent);">0</div><div class="stat-label">بيع نهائي 👑</div></div>
+        <div class="stat-card"><div class="stat-num" id="stExpiring" style="color:var(--orange);">0</div><div class="stat-label">قريب الانتهاء (7 أيام)</div></div>
+        <div class="stat-card"><div class="stat-num" id="stExpired" style="color:var(--red);">0</div><div class="stat-label">منتهي / متوقف</div></div>
+        <div class="stat-card"><div class="stat-num" id="stMaintTotal" style="color:#a855f7;">0</div><div class="stat-label">عداد الصيانات 🛠️</div></div>
+        <div class="stat-card"><div class="stat-num" id="stRevenue" style="color:var(--blue); font-size:1.25rem;">0 دج</div><div class="stat-label">إجمالي المداخيل</div></div>
+      </div>
+
+      <div class="box">
+        <h3>⚠️ تنبيهات الاشتراكات (قريبة الانتهاء أو منتهية)</h3>
+        <div id="alertsList">جاري التحميل...</div>
+      </div>
+    </div>
+
+    <!-- 2. واجهة التقارير والإحصائيات الشاملة -->
+    <div id="view-reports" class="hidden">
+      <div class="box">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+          <h3 style="margin:0;">📈 التقرير الشامل للمبيعات، الاشتراكات، والصيانات</h3>
+          <button class="btn-green" style="width:auto; padding:8px 14px; margin:0; font-size:0.85rem;" onclick="exportFullReportCsv()">📥 تصدير التقرير (Excel / CSV)</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-num" id="repMonthlyCount">0</div><div class="stat-label">اشتراكات شهرية</div></div>
+          <div class="stat-card"><div class="stat-num" id="repYearlyCount">0</div><div class="stat-label">اشتراكات سنوية</div></div>
+          <div class="stat-card"><div class="stat-num" id="repLifetimeCount" style="color:var(--accent);">0</div><div class="stat-label">مبيعات نهائية 👑</div></div>
+          <div class="stat-card"><div class="stat-num" id="repLifetimeRev" style="color:var(--green); font-size:1.2rem;">0 دج</div><div class="stat-label">مداخيل البيع النهائي</div></div>
+          <div class="stat-card"><div class="stat-num" id="repSubRev" style="color:var(--blue); font-size:1.2rem;">0 دج</div><div class="stat-label">مداخيل الاشتراكات</div></div>
+          <div class="stat-card"><div class="stat-num" id="repMaintCount" style="color:#a855f7;">0</div><div class="stat-label">إجمالي الصيانات 🛠️</div></div>
+        </div>
+
+        <h3 style="margin-top:16px;">📋 كشف أداء المحلات وعداد الصيانات</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>المحل</th>
+                <th>نوع الباقة</th>
+                <th>المدة المتبقية</th>
+                <th>عداد الصيانات</th>
+                <th>عدد الدفعات</th>
+                <th>إجمالي المدفوع</th>
+                <th>إجراءات سريعة</th>
+              </tr>
+            </thead>
+            <tbody id="reportsShopsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>💳 سجل جميع المعاملات المالية الأخيرة</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>المحل</th>
+                <th>نوع العملية</th>
+                <th>المبلغ</th>
+                <th>ملاحظة</th>
+                <th>وصل PDF</th>
+              </tr>
+            </thead>
+            <tbody id="reportsPaymentsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. إدارة المحلات والدفعات -->
+    <div id="view-shops" class="hidden">
+      <div class="box">
+        <h3>➕ إضافة محل جديد</h3>
+        <div class="grid-2">
+          <input type="text" id="sName" placeholder="اسم المحل (مثلاً: صالون الأمين)">
+          <input type="text" id="sSlug" placeholder="المعرّف بالإنجليزية (salon-amine)" style="direction:ltr;">
+          <input type="text" id="sOwner" placeholder="اسم صاحب المحل">
+          <input type="tel" id="sPhone" placeholder="رقم هاتف صاحب المحل (05/06/07)">
+          <input type="email" id="sEmail" placeholder="الإيميل (اختياري)" style="direction:ltr;">
+          <input type="text" id="sAddress" placeholder="العنوان / الولاية">
+          <input type="text" id="sPin" placeholder="كود PIN للحلاق (مثلاً: 1234)">
+          <select id="sPlan" onchange="toggleDaysField()">
+            <option value="monthly">اشتراك شهري</option>
+            <option value="yearly">اشتراك سنوي</option>
+            <option value="lifetime">👑 بيع نهائي (مدى الحياة)</option>
+          </select>
+          <input type="number" id="sDays" value="30" placeholder="مدة الاشتراك بالأيام">
+          <input type="number" id="sPrice" placeholder="المبلغ المدفوع (دج)">
+        </div>
+        <textarea id="sNotes" placeholder="ملاحظات إضافية (مثلاً: تفاصيل الصيانة أو الاتفاق)..."></textarea>
+        <label class="field-label">لوغو المحل (اختياري):</label>
+        <input type="file" id="sLogoFile" accept="image/*">
+        <button onclick="addShop()">إنشاء المحل وتوليد وصل PDF</button>
+      </div>
+
+      <div class="box">
+        <h3>📋 قائمة المحلات</h3>
+        <div class="grid-2">
+          <input type="text" id="searchInput" placeholder="🔍 ابحث بالاسم، المعرّف، أو الهاتف..." oninput="filterShops()">
+          <select id="filterPlan" onchange="filterShops()">
+            <option value="all">الكل</option>
+            <option value="active">النشطون فقط</option>
+            <option value="lifetime">البيع النهائي فقط 👑</option>
+            <option value="expiring">قريب الانتهاء</option>
+            <option value="expired">منتهي / متوقف</option>
+          </select>
+        </div>
+        <div id="shopsList">جاري التحميل...</div>
+      </div>
+    </div>
+
+    <!-- 4. زبون التجربة (زبون واحد لكل محل لإثبات إشعار الـ 28 يوم) -->
+    <div id="view-demo" class="hidden">
+      <div class="box">
+        <h3>🧪 زبون التجربة وإثبات الإشعارات (زبون واحد لكل محل)</h3>
+        <p style="font-size:0.85rem; color:#aaa; margin-top:0;">
+          يظهر هنا <strong>زبون واحد فقط</strong> لكل محل لتتمكن من تعديل تاريخ زيارته (-29 يوم) وتصفير التنبيه لإثبات وصول رسالة التذكير الشهرية لصاحب المحل.
+        </p>
+        <input type="text" id="demoSearch" placeholder="🔍 ابحث باسم المحل أو الزبون التجريبي..." oninput="renderDemoCustomers()">
+        <div id="demoCustomersList">جاري التحميل...</div>
+      </div>
+    </div>
+
+    <!-- 5. تذاكر الدعم والشكاوى -->
+    <div id="view-tickets" class="hidden">
+      <div class="box">
+        <h3>🆘 طلبات المساعدة والاستفسارات من الحلاقين</h3>
+        <div id="ticketsList">جاري التحميل...</div>
+      </div>
+    </div>
+
+    <!-- 6. الإعدادات والنسخ الاحتياطي -->
+    <div id="view-settings" class="hidden">
+      <div class="box">
+        <h3>💾 النسخ الاحتياطي لقاعدة البيانات (Backup)</h3>
+        <p style="font-size:0.85rem; color:#aaa;">قم بتحميل نسخة احتياطية كاملة (JSON) لجميع المحلات، الدفعات، وتذاكر الدعم وحفظها على جهازك.</p>
+        <button class="btn-green" onclick="downloadBackup()">⬇️ تحميل نسخة احتياطية كاملة الآن (JSON)</button>
+      </div>
+
+      <div class="box">
+        <h3>🎨 تخصيص الألوان وشعارات الوصل والآدمن</h3>
+        <div class="grid-2">
+          <div>
+            <label class="field-label">اللون الرئيسي:</label>
+            <input type="color" id="setAccent" value="#d4af37" style="height:45px; padding:4px;">
+          </div>
+          <div>
+            <label class="field-label">لون الخلفية:</label>
+            <input type="color" id="setBg" value="#08080a" style="height:45px; padding:4px;">
+          </div>
+        </div>
+        <label class="field-label">تغيير لوغو تطبيق FIDELIX (يظهر في لوحة الآدمن والوصولات):</label>
+        <input type="file" id="setAdminLogo" accept="image/*">
+        <button onclick="saveThemeSettings()">💾 حفظ المظهر واللوغو</button>
+      </div>
+
+      <div class="box">
+        <h3>🔒 تغيير كلمة مرور الآدمن</h3>
+        <input type="password" id="newAdminPass" placeholder="كلمة المرور الجديدة (6 أحرف على الأقل)">
+        <button class="btn-dark" onclick="changeAdminPass()">تحديث كلمة المرور المشفرة</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة إضافة اشتراك / دفع جديد -->
+<div id="renewModal" class="modal-bg hidden">
+  <div class="modal-card" style="max-width:440px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">💳 تجديد الاشتراك وتسجيل الدفع</h3>
+      <button class="btn-dark" style="width:auto; padding:6px 12px; margin:0;" onclick="closeRenewModal()">إغلاق ✖</button>
+    </div>
+    <p id="renewShopTitle" style="color:var(--accent); font-weight:bold; margin:0 0 12px;"></p>
+    <input type="hidden" id="rShopId">
+    <label class="field-label">نوع العملية / الباقة</label>
+    <select id="rPlan" onchange="onRenewPlanChange()">
+      <option value="monthly">اشتراك شهري (30 يوم)</option>
+      <option value="yearly">اشتراك سنوي (365 يوم)</option>
+      <option value="custom">مدة مخصصة بالأيام</option>
+      <option value="lifetime">👑 بيع نهائي (مدى الحياة)</option>
+    </select>
+    <div id="rDaysWrap">
+      <label class="field-label">عدد الأيام المضافة</label>
+      <input type="number" id="rDays" value="30">
+    </div>
+    <label class="field-label">كم دفع الحلاق؟ (المبلغ بالدج) *</label>
+    <input type="number" id="rAmount" placeholder="مثلاً: 2000 أو 35000">
+    <label class="field-label">ملاحظة الدفع (اختياري)</label>
+    <input type="text" id="rNote" placeholder="مثلاً: دفع نقداً / بريدي موب">
+    <button class="btn-green" onclick="submitRenewal()">✅ تأكيد الدفع وإصدار وصل PDF</button>
+  </div>
+</div>
+
+<!-- نافذة سجل الدفعات (Historique Payment) -->
+<div id="historyModal" class="modal-bg hidden">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">📜 سجل الدفعات (Historique Payment)</h3>
+      <button class="btn-dark" style="width:auto; padding:6px 12px; margin:0;" onclick="closeHistoryModal()">إغلاق ✖</button>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+      <div>
+        <strong id="histShopName" style="color:var(--accent);"></strong><br>
+        <small id="histTotalPaid" style="color:var(--green); font-weight:bold;"></small>
+      </div>
+      <button id="histAddPayBtn" class="btn-green" style="width:auto; padding:8px 14px; margin:0; font-size:0.85rem;">+ تسجيل دفعة جديدة</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>التاريخ</th><th>المبلغ</th><th>الباقة / المدة</th><th>ملاحظة</th><th>وصل PDF</th><th>حذف</th></tr></thead>
+        <tbody id="historyTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة معاينة وطباعة وصل PDF (نسخة الإدارة + نسخة الزبون) -->
+<div id="receiptModal" class="modal-bg hidden">
+  <div class="modal-card" style="max-width:760px;">
+    <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <h3 style="margin:0;">🧾 وصل إثبات الدفع (نسخة الإدارة + نسخة الزبون)</h3>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-green" style="width:auto; padding:8px 16px; margin:0;" onclick="window.print()">🖨️ تصدير PDF / طباعة</button>
+        <button class="btn-dark" style="width:auto; padding:8px 14px; margin:0;" onclick="closeReceiptModal()">إغلاق ✖</button>
+      </div>
+    </div>
+    <div id="receiptPrintArea" class="receipt-sheet"></div>
+  </div>
+</div>
+
+<!-- نافذة تعديل زبون التجربة -->
+<div id="editCustModal" class="modal-bg hidden">
+  <div class="modal-card" style="max-width:440px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">✏️ تعديل زبون التجربة</h3>
+      <button class="btn-dark" style="width:auto; padding:6px 12px; margin:0;" onclick="closeEditCustModal()">إغلاق ✖</button>
+    </div>
+    <input type="hidden" id="ecId">
+    <label class="field-label">اسم الزبون</label>
+    <input type="text" id="ecName">
+    <label class="field-label">رقم الهاتف</label>
+    <input type="tel" id="ecPhone">
+    <label class="field-label">عدد النقاط (Stamps)</label>
+    <input type="number" id="ecStamps">
+    <label class="field-label">تاريخ آخر زيارة (لإثبات إشعار الـ 28 يوم)</label>
+    <input type="date" id="ecLastVisit">
+    <button type="button" class="btn-blue" style="margin-bottom:10px;" onclick="setDateMinus29()">⏪ ضبط التاريخ تلقائياً إلى (-29 يوم)</button>
+    <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#ccc; margin-bottom:12px; cursor:pointer;">
+      <input type="checkbox" id="ecResetNotify" checked style="width:auto; margin:0;">
+      تصفير تاريخ آخر تنبيه (NULL) ليُرسل له الإشعار فوراً
+    </label>
+    <button onclick="saveDemoCustomerEdit()">💾 حفظ التعديلات</button>
+  </div>
+</div>
+
+<!-- نافذة مسح QR المحل -->
+<div id="qrScanModal" class="modal-bg hidden">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">📷 فحص محل عبر QR Code</h3>
+      <button class="btn-dark" style="width:auto; padding:6px 12px; margin:0;" onclick="closeQrScanner()">إغلاق ✖</button>
+    </div>
+    <div id="adminQrReader" style="width:100%; border-radius:12px; overflow:hidden; margin-bottom:12px;"></div>
+    <div id="scannedShopResult" class="hidden"></div>
+  </div>
+</div>
+
+<!-- نافذة التعديل الشامل للمحل -->
+<div id="editShopModal" class="modal-bg hidden">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">✏️ تعديل بيانات المحل</h3>
+      <button class="btn-dark" style="width:auto; padding:6px 12px; margin:0;" onclick="closeEditModal()">إغلاق ✖</button>
+    </div>
+    <input type="hidden" id="eId">
+    <div class="grid-2">
+      <div><label class="field-label">اسم المحل</label><input type="text" id="eName"></div>
+      <div><label class="field-label">المعرّف (Slug)</label><input type="text" id="eSlug" style="direction:ltr;"></div>
+      <div><label class="field-label">اسم المالك</label><input type="text" id="eOwner"></div>
+      <div><label class="field-label">رقم الهاتف</label><input type="tel" id="ePhone"></div>
+      <div><label class="field-label">الإيميل</label><input type="email" id="eEmail" style="direction:ltr;"></div>
+      <div><label class="field-label">العنوان</label><input type="text" id="eAddress"></div>
+      <div><label class="field-label">كود PIN</label><input type="text" id="ePin"></div>
+      <div>
+        <label class="field-label">نوع الباقة</label>
+        <select id="ePlan">
+          <option value="monthly">اشتراك شهري</option>
+          <option value="yearly">اشتراك سنوي</option>
+          <option value="lifetime">👑 بيع نهائي (مدى الحياة)</option>
+        </select>
+      </div>
+      <div><label class="field-label">تاريخ انتهاء الاشتراك</label><input type="date" id="eExpires"></div>
+      <div><label class="field-label">إجمالي المدفوع (دج)</label><input type="number" id="ePrice"></div>
+      <div><label class="field-label">عداد الصيانات</label><input type="number" id="eMaint"></div>
+      <div><label class="field-label">هدف الحلاقات (Stamps)</label><input type="number" id="eGoal"></div>
+    </div>
+    <label class="field-label">نص المكافأة</label>
+    <input type="text" id="eReward">
+    <label class="field-label">ملاحظات</label>
+    <textarea id="eNotes"></textarea>
+    <button onclick="saveShopEdit()">💾 حفظ جميع التعديلات</button>
+  </div>
+</div>
+
+<div class="powered-by">Powered by <span>Karix-Tech</span></div>
+<input type="file" id="updateLogoInput" accept="image/*" class="hidden">
+
+<script>
+  const SUPABASE_URL = 'https://udufhldmcdbncueathiy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkdWZobGRtY2RibmN1ZWF0aGl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1MzA4MjcsImV4cCI6MjExMTEwNjgyN30.6OZBOYwKPH3MhiJPuMElqKiiUsmAYBBf8q4PAfpicYo';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let allShops = [], allPayments = [], allTickets = [], adminSettings = null;
+  let demoCustomerByShop = {};
+  let targetShopIdForLogo = null;
+  let adminQrScanner = null;
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function loadSettings() {
+    const { data } = await db.from('admin_settings').select('*').eq('id', 1).maybeSingle();
+    if (data) {
+      adminSettings = data;
+      if (data.accent_color) {
+        document.documentElement.style.setProperty('--accent', data.accent_color);
+        document.getElementById('setAccent').value = data.accent_color;
+      }
+      if (data.bg_color) {
+        document.documentElement.style.setProperty('--bg', data.bg_color);
+        document.getElementById('setBg').value = data.bg_color;
+      }
+      if (data.admin_logo) {
+        document.getElementById('authLogo').src = data.admin_logo;
+        document.getElementById('headerLogo').src = data.admin_logo;
+        document.getElementById('favIcon').href = data.admin_logo;
+      }
+    }
+  }
+  loadSettings();
+
+  async function unlock() {
+    const pass = document.getElementById('adminPass').value;
+    const hash = await sha256(pass);
+    const defaultHash = await sha256('2026');
+    const validHash = adminSettings?.password_hash || defaultHash;
+
+    if (hash === validHash || (pass === '2026' && !adminSettings)) {
+      document.getElementById('authBox').classList.add('hidden');
+      document.getElementById('mainBox').classList.remove('hidden');
+      refreshAll();
+    } else {
+      alert('كلمة المرور غير صحيحة');
+    }
+  }
+
+  function switchView(name, el) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    ['dashboard', 'reports', 'shops', 'demo', 'tickets', 'settings'].forEach(v => {
+      document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+    });
+  }
+
+  function toggleDaysField() {
+    const plan = document.getElementById('sPlan').value;
+    const daysInput = document.getElementById('sDays');
+    if (plan === 'lifetime') { daysInput.value = 36500; daysInput.classList.add('hidden'); }
+    else { daysInput.classList.remove('hidden'); daysInput.value = plan === 'yearly' ? 365 : 30; }
+  }
+
+  async function refreshAll() {
+    const [sRes, cRes, tRes, pRes] = await Promise.all([
+      db.from('shops').select('*').order('created_at', { ascending: false }),
+      db.from('customers').select('*').order('created_at', { ascending: true }),
+      db.from('support_tickets').select('*').order('created_at', { ascending: false }),
+      db.from('payment_history').select('*').order('created_at', { ascending: false })
+    ]);
+    allShops = sRes.data || [];
+    allTickets = tRes.data || [];
+    allPayments = pRes.data || [];
+
+    demoCustomerByShop = {};
+    (cRes.data || []).forEach(c => {
+      if (c.shop_id && !demoCustomerByShop[c.shop_id]) {
+        demoCustomerByShop[c.shop_id] = c;
+      }
+    });
+
+    renderDashboard();
+    renderReports();
+    filterShops();
+    renderDemoCustomers();
+    renderTickets();
+  }
+
+  function getShopStatus(s) {
+    if (!s.is_active) return 'stopped';
+    if (s.plan_type === 'lifetime') return 'lifetime';
+    const diffDays = (new Date(s.expires_at).getTime() - Date.now()) / 86400000;
+    if (diffDays < 0) return 'expired';
+    if (diffDays <= 7) return 'expiring';
+    return 'active';
+  }
+
+  function getPlanLabel(p) {
+    return p === 'lifetime' ? '👑 بيع نهائي (مدى الحياة)' : (p === 'yearly' ? 'اشتراك سنوي' : 'اشتراك شهري');
+  }
+
+  function getRemainingText(s) {
+    if (s.plan_type === 'lifetime') return 'مدى الحياة ♾️';
+    const days = Math.ceil((new Date(s.expires_at).getTime() - Date.now()) / 86400000);
+    return days >= 0 ? `متبقي ${days} يوم` : `منتهي منذ ${Math.abs(days)} يوم`;
+  }
+
+  /* ===== إصدار وصل PDF رسمي بنسختين (نسخة الإدارة + نسخة الزبون) ===== */
+  function openReceiptPdf(paymentId) {
+    const pay = allPayments.find(p => p.id === paymentId);
+    if (!pay) return alert('تعذر العثور على بيانات الدفعة');
+    const shop = allShops.find(s => s.id === pay.shop_id) || {};
+
+    const fidelixLogo = adminSettings?.admin_logo || './images/logo.png';
+    const karixLogo = './images/karix-logo.png';
+    const isLifetime = pay.plan_type === 'lifetime';
+    const docTitle = isLifetime ? 'شهادة بيع نهائي وإثبات دفع رسمي' : 'وصل تجديد اشتراك وإثبات دفع';
+    const refNum = 'INV-' + pay.id.slice(0, 8).toUpperCase();
+    const payDate = new Date(pay.created_at).toLocaleDateString('ar-DZ');
+    const expText = isLifetime ? 'ترخيص دائم (مدى الحياة)' : (shop.expires_at ? new Date(shop.expires_at).toLocaleDateString('ar-DZ') : `${pay.days_added} يوم`);
+
+    const buildCopy = (copyLabel) => `
+      <div class="receipt-copy">
+        <div class="receipt-head">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="${fidelixLogo}" alt="FIDELIX" style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid #b88f1e;" onerror="this.style.display='none'">
+            <div>
+              <strong style="font-size:1.05rem; color:#0f172a; display:block;">${docTitle}</strong>
+              <span style="font-size:0.78rem; color:#7c5c0c; font-weight:bold;">نظام FIDELIX لإدارة بطاقات الوفاء</span>
+            </div>
+          </div>
+          <div style="text-align:left;">
+            <img src="${karixLogo}" alt="KARIX-Tech" style="height:34px; width:auto; background:#0b0b0d; padding:3px 8px; border-radius:6px; display:block; margin-bottom:4px;" onerror="this.style.display='none'">
+            <span style="background:#0f172a; color:#f3d778; padding:2px 8px; border-radius:4px; font-size:0.72rem; font-weight:bold;">${copyLabel}</span>
+          </div>
+        </div>
+
+        <div class="receipt-grid">
+          <div><strong>رقم الوصل:</strong> <span style="font-family:monospace;">${refNum}</span></div>
+          <div><strong>تاريخ الدفع:</strong> ${payDate}</div>
+          <div><strong>اسم المحل:</strong> ${escapeHtml(shop.name || pay.shop_name || '-')}</div>
+          <div><strong>صاحب المحل:</strong> ${escapeHtml(shop.owner_name || '-')}</div>
+          <div><strong>رقم الهاتف:</strong> ${escapeHtml(shop.phone || '-')}</div>
+          <div><strong>العنوان:</strong> ${escapeHtml(shop.address || '-')}</div>
+          <div><strong>نوع الباقة:</strong> ${getPlanLabel(pay.plan_type)}</div>
+          <div><strong>صلاحية الاشتراك:</strong> ${expText}</div>
+          <div><strong>المبلغ المدفوع:</strong> <strong style="color:#15803d; font-size:0.95rem;">${Number(pay.amount || 0).toLocaleString('fr-DZ')} دج</strong></div>
+          <div><strong>ملاحظات:</strong> ${escapeHtml(pay.note || 'تم الدفع بالكامل')}</div>
+        </div>
+
+        <div class="receipt-foot">
+          <div>
+            <strong>شركة KARIX-Tech للتطوير والحلول الرقمية</strong><br>
+            <span>📞 0549838960 | ✉️ karixtech1@gmail.com</span>
+          </div>
+          <div style="text-align:center;">
+            <span>ختم وتوقيع الإدارة</span><br><br>
+            <span style="color:#94a3b8;">........................</span>
+          </div>
+          <div style="text-align:center;">
+            <span>توقيع الزبون</span><br><br>
+            <span style="color:#94a3b8;">........................</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('receiptPrintArea').innerHTML = `
+      ${buildCopy('نسخة الإدارة — KARIX-Tech')}
+      <div class="cut-line">✂️ قصّ هنا — نسخة الزبون (صاحب المحل) في الأسفل</div>
+      ${buildCopy('نسخة الزبون — صاحب المحل')}
+    `;
+    document.getElementById('receiptModal').classList.remove('hidden');
+  }
+
+  function closeReceiptModal() { document.getElementById('receiptModal').classList.add('hidden'); }
+
+  /* ===== واجهة التقارير والإحصائيات الشاملة ===== */
+  function renderReports() {
+    let monthlyCount = 0, yearlyCount = 0, lifetimeCount = 0;
+    let lifetimeRev = 0, subRev = 0, totalMaint = 0;
+
+    allShops.forEach(s => {
+      totalMaint += Number(s.maintenance_count || 0);
+      if (s.plan_type === 'lifetime') lifetimeCount++;
+      else if (s.plan_type === 'yearly') yearlyCount++;
+      else monthlyCount++;
+    });
+
+    allPayments.forEach(p => {
+      const amt = Number(p.amount || 0);
+      if (p.plan_type === 'lifetime') lifetimeRev += amt;
+      else subRev += amt;
+    });
+
+    document.getElementById('repMonthlyCount').innerText = monthlyCount;
+    document.getElementById('repYearlyCount').innerText = yearlyCount;
+    document.getElementById('repLifetimeCount').innerText = lifetimeCount;
+    document.getElementById('repLifetimeRev').innerText = lifetimeRev.toLocaleString('fr-DZ') + ' دج';
+    document.getElementById('repSubRev').innerText = subRev.toLocaleString('fr-DZ') + ' دج';
+    document.getElementById('repMaintCount').innerText = totalMaint;
+
+    const shopsTbody = document.getElementById('reportsShopsTable');
+    shopsTbody.innerHTML = allShops.map(s => {
+      const shopPays = allPayments.filter(p => p.shop_id === s.id);
+      const totalPaid = shopPays.reduce((sum, p) => sum + Number(p.amount || 0), 0) || Number(s.price_paid || 0);
+      const lastPay = shopPays[0];
+      return `
+        <tr>
+          <td><strong>${escapeHtml(s.name)}</strong><br><small style="color:#888;">${escapeHtml(s.phone || '-')}</small></td>
+          <td>${getPlanLabel(s.plan_type)}</td>
+          <td>${getRemainingText(s)}</td>
+          <td>
+            <strong style="color:#a855f7; font-size:1rem;">${s.maintenance_count || 0}</strong>
+            <button class="btn-dark" style="width:auto; padding:3px 8px; margin:0 6px 0 0; font-size:0.75rem;" onclick="incrementMaintenance('${s.id}')">+1</button>
+          </td>
+          <td>${shopPays.length}</td>
+          <td style="color:var(--green); font-weight:bold;">${totalPaid.toLocaleString('fr-DZ')} دج</td>
+          <td>
+            ${lastPay ? `<button class="btn-blue" style="width:auto; padding:5px 9px; margin:0; font-size:0.75rem;" onclick="openReceiptPdf('${lastPay.id}')">🧾 آخر وصل</button>` : '-'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const paysTbody = document.getElementById('reportsPaymentsTable');
+    paysTbody.innerHTML = allPayments.slice(0, 50).map(p => `
+      <tr>
+        <td>${new Date(p.created_at).toLocaleDateString('ar-DZ')}</td>
+        <td><strong>${escapeHtml(p.shop_name || '-')}</strong></td>
+        <td>${getPlanLabel(p.plan_type)}</td>
+        <td style="color:var(--green); font-weight:bold;">${Number(p.amount || 0).toLocaleString('fr-DZ')} دج</td>
+        <td>${escapeHtml(p.note || '-')}</td>
+        <td><button class="btn-blue" style="width:auto; padding:5px 10px; margin:0; font-size:0.75rem;" onclick="openReceiptPdf('${p.id}')">🧾 وصل PDF</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function exportFullReportCsv() {
+    const rows = [['اسم المحل', 'المالك', 'الهاتف', 'نوع الباقة', 'المدة المتبقية', 'عداد الصيانات', 'إجمالي المدفوع (دج)']];
+    allShops.forEach(s => {
+      rows.push([
+        s.name || '', s.owner_name || '', s.phone || '',
+        s.plan_type || 'monthly', getRemainingText(s),
+        s.maintenance_count || 0, s.price_paid || 0
+      ]);
+    });
+    const csv = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `FIDELIX-Report-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  /* ===== نافذة تجديد الاشتراك والدفع ===== */
+  function openRenewModal(shopId) {
+    const s = allShops.find(x => x.id === shopId);
+    if (!s) return;
+    document.getElementById('rShopId').value = s.id;
+    document.getElementById('renewShopTitle').innerText = `المحل: ${s.name} (${getRemainingText(s)})`;
+    document.getElementById('rPlan').value = 'monthly';
+    document.getElementById('rDaysWrap').classList.remove('hidden');
+    document.getElementById('rDays').value = 30;
+    document.getElementById('rAmount').value = '';
+    document.getElementById('rNote').value = '';
+    document.getElementById('renewModal').classList.remove('hidden');
+  }
+
+  function closeRenewModal() { document.getElementById('renewModal').classList.add('hidden'); }
+
+  function onRenewPlanChange() {
+    const p = document.getElementById('rPlan').value;
+    const wrap = document.getElementById('rDaysWrap');
+    const daysEl = document.getElementById('rDays');
+    if (p === 'lifetime') { wrap.classList.add('hidden'); daysEl.value = 36500; }
+    else {
+      wrap.classList.remove('hidden');
+      if (p === 'monthly') daysEl.value = 30;
+      else if (p === 'yearly') daysEl.value = 365;
+    }
+  }
+
+  async function submitRenewal() {
+    const shopId = document.getElementById('rShopId').value;
+    const s = allShops.find(x => x.id === shopId);
+    if (!s) return;
+
+    const plan = document.getElementById('rPlan').value;
+    const days = plan === 'lifetime' ? 36500 : (parseInt(document.getElementById('rDays').value) || 30);
+    const amount = parseFloat(document.getElementById('rAmount').value);
+    const note = document.getElementById('rNote').value.trim();
+
+    if (isNaN(amount) || amount < 0) return alert('يرجى إدخال المبلغ المدفوع (اكتب 0 إذا كان مجانياً)');
+
+    const planTypeToSave = plan === 'custom' ? (s.plan_type || 'monthly') : plan;
+    const base = Math.max(Date.now(), new Date(s.expires_at).getTime());
+    const newExp = new Date(base + days * 86400000).toISOString();
+
+    const { data: createdPay } = await db.from('payment_history').insert({
+      shop_id: s.id,
+      shop_name: s.name,
+      amount,
+      days_added: days,
+      plan_type: planTypeToSave,
+      note: note || (plan === 'lifetime' ? 'بيع نهائي (مدى الحياة)' : `تجديد اشتراك ${days} يوم`)
+    }).select().single();
+
+    await db.from('shops').update({
+      expires_at: newExp,
+      is_active: true,
+      plan_type: planTypeToSave,
+      price_paid: Number(s.price_paid || 0) + amount
+    }).eq('id', s.id);
+
+    closeRenewModal();
+    await refreshAll();
+    if (!document.getElementById('historyModal').classList.contains('hidden')) {
+      openHistoryModal(shopId);
+    }
+    if (createdPay) openReceiptPdf(createdPay.id);
+  }
+
+  /* ===== نافذة سجل الدفعات (Historique Payment) ===== */
+  function openHistoryModal(shopId) {
+    const s = allShops.find(x => x.id === shopId);
+    if (!s) return;
+    const payments = allPayments.filter(p => p.shop_id === shopId);
+    const total = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    document.getElementById('histShopName').innerText = `✂️ ${s.name}`;
+    document.getElementById('histTotalPaid').innerText = `إجمالي المدفوع: ${total.toLocaleString('fr-DZ')} دج (${payments.length} دفعات)`;
+    document.getElementById('histAddPayBtn').onclick = () => openRenewModal(shopId);
+
+    const tbody = document.getElementById('historyTableBody');
+    if (payments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">لا توجد دفعات مسجلة لهذا المحل بعد.</td></tr>';
+    } else {
+      tbody.innerHTML = payments.map(p => `
+        <tr>
+          <td>${new Date(p.created_at).toLocaleDateString('ar-DZ')}</td>
+          <td style="color:var(--green); font-weight:bold;">${Number(p.amount).toLocaleString('fr-DZ')} دج</td>
+          <td>${p.plan_type === 'lifetime' ? '👑 بيع نهائي' : `${p.days_added} يوم`}</td>
+          <td>${escapeHtml(p.note || '-')}</td>
+          <td><button class="btn-blue" style="width:auto; padding:4px 8px; margin:0; font-size:0.75rem;" onclick="openReceiptPdf('${p.id}')">🧾 PDF</button></td>
+          <td><button class="btn-red" style="width:auto; padding:4px 8px; margin:0; font-size:0.75rem;" onclick="deletePayment('${p.id}', '${shopId}', ${Number(p.amount || 0)})">🗑️</button></td>
+        </tr>
+      `).join('');
+    }
+    document.getElementById('historyModal').classList.remove('hidden');
+  }
+
+  function closeHistoryModal() { document.getElementById('historyModal').classList.add('hidden'); }
+
+  async function deletePayment(payId, shopId, amount) {
+    if (!confirm('حذف سجل هذه الدفعة؟')) return;
+    await db.from('payment_history').delete().eq('id', payId);
+    const s = allShops.find(x => x.id === shopId);
+    if (s) {
+      const updatedTotal = Math.max(0, Number(s.price_paid || 0) - amount);
+      await db.from('shops').update({ price_paid: updatedTotal }).eq('id', shopId);
+    }
+    await refreshAll();
+    openHistoryModal(shopId);
+  }
+
+  /* ===== قسم زبون التجربة (1 لكل محل) ===== */
+  function renderDemoCustomers() {
+    const q = (document.getElementById('demoSearch')?.value || '').trim().toLowerCase();
+    const container = document.getElementById('demoCustomersList');
+
+    const filteredShops = allShops.filter(s => {
+      const c = demoCustomerByShop[s.id];
+      return (s.name || '').toLowerCase().includes(q) ||
+             (s.slug || '').toLowerCase().includes(q) ||
+             (c && ((c.full_name || '').toLowerCase().includes(q) || (c.phone || '').includes(q)));
+    });
+
+    if (filteredShops.length === 0) {
+      container.innerHTML = '<p style="text-align:center; color:#777;">لا توجد محلات مطابقة.</p>';
+      return;
+    }
+
+    container.innerHTML = filteredShops.map(s => {
+      const c = demoCustomerByShop[s.id];
+      if (!c) {
+        return `
+          <div class="shop-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <strong>✂️ ${escapeHtml(s.name)}</strong><br>
+              <small style="color:#888;">لا يوجد زبون مسجل في هذا المحل بعد</small>
+            </div>
+            <button class="btn-dark" style="width:auto; padding:8px 14px; margin:0; font-size:0.82rem;" onclick="createDemoCustomer('${s.id}')">➕ إنشاء زبون تجريبي</button>
+          </div>`;
+      }
+
+      const daysAgo = Math.floor((Date.now() - new Date(c.last_visit_at).getTime()) / 86400000);
+      const isEligible = daysAgo >= 28 && !c.last_notified_at;
+
+      return `
+        <div class="shop-row">
+          <div class="shop-header">
+            <div>
+              <span class="badge b-gold">✂️ ${escapeHtml(s.name)}</span>
+              <strong style="margin-right:6px;">${escapeHtml(c.full_name)}</strong>
+              <span class="badge ${isEligible ? 'b-green' : 'b-orange'}">${isEligible ? 'جاهز لإشعار الغياب 🟢' : `آخر زيارة منذ ${daysAgo} يوم`}</span><br>
+              <small style="color:#aaa;">📞 ${escapeHtml(c.phone)} | الكود: <strong>${escapeHtml(c.short_code)}</strong> | النقاط: ${c.stamps}/${s.stamps_goal || 10}</small><br>
+              <small style="color:#888;">📅 آخر زيارة: ${new Date(c.last_visit_at).toLocaleDateString('ar-DZ')} | 🔔 آخر إشعار: ${c.last_notified_at ? new Date(c.last_notified_at).toLocaleDateString('ar-DZ') : 'NULL (جاهز)'}</small>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-blue" onclick="simulate29Days('${c.id}')">⏪ محاكاة غياب 29 يوم (للتجربة)</button>
+            <button onclick="openEditCustModal('${s.id}')">✏️ تعديل الزبون</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function createDemoCustomer(shopId) {
+    const code = 'TST-' + Math.floor(100 + Math.random() * 899);
+    const { error } = await db.from('customers').insert({
+      shop_id: shopId,
+      full_name: 'زبون تجريبي',
+      phone: '0550000000',
+      short_code: code,
+      stamps: 1
+    });
+    if (error) return alert('خطأ: ' + error.message);
+    alert('تم إنشاء زبون التجربة! افتح رابط المحل على الهاتف لتفعيل الإشعارات له.');
+    refreshAll();
+  }
+
+  async function simulate29Days(custId) {
+    const minus29 = new Date(Date.now() - 29 * 86400000).toISOString();
+    await db.from('customers').update({
+      last_visit_at: minus29,
+      last_notified_at: null
+    }).eq('id', custId);
+    alert('✅ تم إرجاع آخر زيارة إلى (-29 يوم) وتصفير التنبيه! الزبون الآن جاهز لاستلام إشعار التذكير.');
+    refreshAll();
+  }
+
+  function openEditCustModal(shopId) {
+    const c = demoCustomerByShop[shopId];
+    if (!c) return;
+    document.getElementById('ecId').value = c.id;
+    document.getElementById('ecName').value = c.full_name || '';
+    document.getElementById('ecPhone').value = c.phone || '';
+    document.getElementById('ecStamps').value = c.stamps || 0;
+    document.getElementById('ecLastVisit').value = c.last_visit_at ? new Date(c.last_visit_at).toISOString().slice(0, 10) : '';
+    document.getElementById('ecResetNotify').checked = true;
+    document.getElementById('editCustModal').classList.remove('hidden');
+  }
+
+  function closeEditCustModal() { document.getElementById('editCustModal').classList.add('hidden'); }
+
+  function setDateMinus29() {
+    document.getElementById('ecLastVisit').value = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+  }
+
+  async function saveDemoCustomerEdit() {
+    const id = document.getElementById('ecId').value;
+    const d = document.getElementById('ecLastVisit').value;
+    const updates = {
+      full_name: document.getElementById('ecName').value.trim(),
+      phone: document.getElementById('ecPhone').value.trim(),
+      stamps: parseInt(document.getElementById('ecStamps').value) || 0,
+      last_visit_at: d ? new Date(d).toISOString() : new Date().toISOString()
+    };
+    if (document.getElementById('ecResetNotify').checked) {
+      updates.last_notified_at = null;
+    }
+    const { error } = await db.from('customers').update(updates).eq('id', id);
+    if (error) return alert('خطأ: ' + error.message);
+    closeEditCustModal();
+    alert('تم حفظ تعديلات الزبون بنجاح!');
+    refreshAll();
+  }
+
+  /* ===== ماسح QR للمحلات ===== */
+  async function openQrScanner() {
+    document.getElementById('qrScanModal').classList.remove('hidden');
+    document.getElementById('scannedShopResult').classList.add('hidden');
+    document.getElementById('adminQrReader').innerHTML = '';
+    adminQrScanner = new Html5Qrcode("adminQrReader");
+    try {
+      await adminQrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, (decoded) => {
+        stopQrCamera();
+        handleScannedShop(decoded);
+      });
+    } catch (e) {
+      alert('تعذر تشغيل الكاميرا: ' + e);
+    }
+  }
+
+  async function stopQrCamera() {
+    if (adminQrScanner) {
+      try { await adminQrScanner.stop(); } catch (_) {}
+      adminQrScanner = null;
+    }
+  }
+
+  function closeQrScanner() {
+    stopQrCamera();
+    document.getElementById('qrScanModal').classList.add('hidden');
+  }
+
+  function handleScannedShop(text) {
+    let slug = text.trim();
+    try {
+      const u = new URL(text);
+      if (u.searchParams.get('shop')) slug = u.searchParams.get('shop');
+    } catch (_) {}
+    slug = slug.trim().toLowerCase();
+
+    const s = allShops.find(item => item.slug.toLowerCase() === slug);
+    const box = document.getElementById('scannedShopResult');
+    box.classList.remove('hidden');
+
+    if (!s) {
+      box.innerHTML = `<p style="color:var(--red); text-align:center;">لم يتم العثور على محل بالمعرّف: ${escapeHtml(slug)}</p>`;
+      return;
+    }
+
+    const st = getShopStatus(s);
+    box.innerHTML = `
+      <div class="shop-row" style="border-color:var(--accent);">
+        <h3 style="margin-bottom:8px;">✂️ ${escapeHtml(s.name)}</h3>
+        <p style="margin:4px 0; font-size:0.9rem;">📌 <strong>نوع الاشتراك:</strong> ${getPlanLabel(s.plan_type)}</p>
+        <p style="margin:4px 0; font-size:0.9rem;">⏳ <strong>المدة المتبقية:</strong> <span style="color:${st==='expired'||st==='stopped'?'var(--red)':'var(--green)'}; font-weight:bold;">${getRemainingText(s)}</span></p>
+        <p style="margin:4px 0; font-size:0.9rem;">🛠️ <strong>عداد الصيانات:</strong> <strong style="color:#a855f7;">${s.maintenance_count || 0}</strong></p>
+        <p style="margin:4px 0; font-size:0.85rem; color:#aaa;">📞 ${escapeHtml(s.phone || '-')} | PIN: ${escapeHtml(s.pin_code)}</p>
+        <div class="actions">
+          <button class="btn-green" onclick="closeQrScanner(); openRenewModal('${s.id}')">💳 تجديد / دفع</button>
+          <button class="btn-blue" onclick="incrementMaintenance('${s.id}')">🛠️ +1 صيانة</button>
+          <button onclick="closeQrScanner(); openEditModal('${s.id}')">✏️ تعديل</button>
+          <button class="btn-dark" onclick="toggleShop('${s.id}').then(()=>handleScannedShop('${s.slug}'))">${s.is_active ? 'إيقاف' : 'تفعيل'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  async function incrementMaintenance(id) {
+    const s = allShops.find(x => x.id === id);
+    if (!s) return;
+    await db.from('shops').update({ maintenance_count: (s.maintenance_count || 0) + 1 }).eq('id', id);
+    await refreshAll();
+    if (!document.getElementById('qrScanModal').classList.contains('hidden')) handleScannedShop(s.slug);
+  }
+
+  /* ===== التعديل الشامل للمحل ===== */
+  function openEditModal(id) {
+    const s = allShops.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('eId').value = s.id;
+    document.getElementById('eName').value = s.name || '';
+    document.getElementById('eSlug').value = s.slug || '';
+    document.getElementById('eOwner').value = s.owner_name || '';
+    document.getElementById('ePhone').value = s.phone || '';
+    document.getElementById('eEmail').value = s.email || '';
+    document.getElementById('eAddress').value = s.address || '';
+    document.getElementById('ePin').value = s.pin_code || '';
+    document.getElementById('ePlan').value = s.plan_type || 'monthly';
+    document.getElementById('eExpires').value = s.expires_at ? new Date(s.expires_at).toISOString().slice(0, 10) : '';
+    document.getElementById('ePrice').value = s.price_paid || 0;
+    document.getElementById('eMaint').value = s.maintenance_count || 0;
+    document.getElementById('eGoal').value = s.stamps_goal || 10;
+    document.getElementById('eReward').value = s.reward_text || 'حلاقة مجانية';
+    document.getElementById('eNotes').value = s.notes || '';
+    document.getElementById('editShopModal').classList.remove('hidden');
+  }
+
+  function closeEditModal() { document.getElementById('editShopModal').classList.add('hidden'); }
+
+  async function saveShopEdit() {
+    const id = document.getElementById('eId').value;
+    const plan_type = document.getElementById('ePlan').value;
+    const expDate = document.getElementById('eExpires').value;
+    const updates = {
+      name: document.getElementById('eName').value.trim(),
+      slug: document.getElementById('eSlug').value.trim().toLowerCase(),
+      owner_name: document.getElementById('eOwner').value.trim(),
+      phone: document.getElementById('ePhone').value.trim(),
+      email: document.getElementById('eEmail').value.trim(),
+      address: document.getElementById('eAddress').value.trim(),
+      pin_code: document.getElementById('ePin').value.trim(),
+      plan_type,
+      expires_at: plan_type === 'lifetime' ? new Date(Date.now() + 36500 * 86400000).toISOString() : (expDate ? new Date(expDate).toISOString() : new Date().toISOString()),
+      price_paid: parseFloat(document.getElementById('ePrice').value) || 0,
+      maintenance_count: parseInt(document.getElementById('eMaint').value) || 0,
+      stamps_goal: parseInt(document.getElementById('eGoal').value) || 10,
+      reward_text: document.getElementById('eReward').value.trim() || 'حلاقة مجانية',
+      notes: document.getElementById('eNotes').value.trim()
+    };
+    const { error } = await db.from('shops').update(updates).eq('id', id);
+    if (error) return alert('خطأ في التعديل: ' + error.message);
+    closeEditModal();
+    alert('تم حفظ التعديلات بنجاح!');
+    refreshAll();
+  }
+
+  function renderDashboard() {
+    let active = 0, lifetime = 0, expiring = 0, expired = 0, totalMaint = 0;
+    const revenue = allPayments.length > 0
+      ? allPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
+      : allShops.reduce((sum, s) => sum + Number(s.price_paid || 0), 0);
+    const alerts = [];
+
+    allShops.forEach(s => {
+      totalMaint += Number(s.maintenance_count || 0);
+      const st = getShopStatus(s);
+      if (st === 'lifetime') { lifetime++; active++; }
+      else if (st === 'active') active++;
+      else if (st === 'expiring') { expiring++; active++; alerts.push({ s, st }); }
+      else { expired++; alerts.push({ s, st }); }
+    });
+
+    document.getElementById('stTotal').innerText = allShops.length;
+    document.getElementById('stActive').innerText = active;
+    document.getElementById('stLifetime').innerText = lifetime;
+    document.getElementById('stExpiring').innerText = expiring;
+    document.getElementById('stExpired').innerText = expired;
+    document.getElementById('stMaintTotal').innerText = totalMaint;
+    document.getElementById('stRevenue').innerText = revenue.toLocaleString('fr-DZ') + ' دج';
+
+    const openTickets = allTickets.filter(t => t.status === 'open').length;
+    document.getElementById('ticketBadge').innerText = openTickets > 0 ? `(${openTickets})` : '';
+
+    const alertsBox = document.getElementById('alertsList');
+    if (alerts.length === 0) {
+      alertsBox.innerHTML = '<p style="color:#777; text-align:center;">جميع الاشتراكات في حالة ممتازة ✅</p>';
+    } else {
+      alertsBox.innerHTML = alerts.map(({ s, st }) => `
+        <div class="shop-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <strong>${escapeHtml(s.name)}</strong>
+            <span class="badge ${st === 'expiring' ? 'b-orange' : 'b-red'}">${st === 'expiring' ? 'قريب الانتهاء' : 'منتهي/متوقف'}</span><br>
+            <small style="color:#aaa;">${getRemainingText(s)} | هاتف: ${escapeHtml(s.phone || '-')}</small>
+          </div>
+          <div style="display:flex; gap:6px;">
+            ${s.phone ? `<a href="https://wa.me/${formatDz(s.phone)}" target="_blank" class="btn-green" style="padding:7px 12px; border-radius:8px; text-decoration:none; color:#000; font-size:0.8rem; font-weight:bold;">واتساب 💬</a>` : ''}
+            <button onclick="openRenewModal('${s.id}')" style="width:auto; padding:7px 12px; margin:0; font-size:0.8rem;">💳 تجديد / دفع</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  function formatDz(p) {
+    p = String(p || '').replace(/\D/g, '');
+    return p.startsWith('0') ? '213' + p.slice(1) : p;
+  }
+
+  function compressLogo(file) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 200; canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+          const min = Math.min(img.width, img.height);
+          ctx.drawImage(img, (img.width - min)/2, (img.height - min)/2, min, min, 0, 0, 200, 200);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function addShop() {
+    const name = document.getElementById('sName').value.trim();
+    const slug = document.getElementById('sSlug').value.trim().toLowerCase();
+    const pin_code = document.getElementById('sPin').value.trim();
+    const owner_name = document.getElementById('sOwner').value.trim();
+    const phone = document.getElementById('sPhone').value.trim();
+    const email = document.getElementById('sEmail').value.trim();
+    const address = document.getElementById('sAddress').value.trim();
+    const plan_type = document.getElementById('sPlan').value;
+    const days = plan_type === 'lifetime' ? 36500 : (parseInt(document.getElementById('sDays').value) || 30);
+    const price_paid = parseFloat(document.getElementById('sPrice').value) || 0;
+    const notes = document.getElementById('sNotes').value.trim();
+    const logoFile = document.getElementById('sLogoFile').files[0];
+
+    if (!name || !slug || !pin_code) return alert('املأ اسم المحل، المعرّف، وكود PIN');
+    const logo_url = await compressLogo(logoFile);
+    const expires_at = new Date(Date.now() + days * 86400000).toISOString();
+
+    const { data: created, error } = await db.from('shops').insert({
+      name, slug, pin_code, owner_name, phone, email, address, plan_type, price_paid, notes, expires_at, logo_url
+    }).select().single();
+    if (error) return alert('خطأ: ربما المعرّف مستخدم مسبقاً');
+
+    let createdPayId = null;
+    if (created) {
+      const { data: payRow } = await db.from('payment_history').insert({
+        shop_id: created.id,
+        shop_name: name,
+        amount: price_paid,
+        days_added: days,
+        plan_type,
+        note: plan_type === 'lifetime' ? 'شراء نهائي للتطبيق (مدى الحياة)' : 'اشتراك أولي عند فتح الحساب'
+      }).select().single();
+      if (payRow) createdPayId = payRow.id;
+    }
+
+    ['sName','sSlug','sOwner','sPhone','sEmail','sAddress','sPin','sPrice','sNotes','sLogoFile'].forEach(id => document.getElementById(id).value = '');
+    await refreshAll();
+    if (createdPayId && price_paid > 0) {
+      openReceiptPdf(createdPayId);
+    } else {
+      alert('تم إنشاء المحل بنجاح!');
+    }
+  }
+
+  function filterShops() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const f = document.getElementById('filterPlan').value;
+    const list = allShops.filter(s => {
+      const matchQ = (s.name||'').toLowerCase().includes(q) || (s.slug||'').toLowerCase().includes(q) || (s.phone||'').includes(q);
+      const st = getShopStatus(s);
+      if (f === 'all') return matchQ;
+      if (f === 'active') return matchQ && (st === 'active' || st === 'lifetime' || st === 'expiring');
+      if (f === 'lifetime') return matchQ && st === 'lifetime';
+      if (f === 'expiring') return matchQ && st === 'expiring';
+      if (f === 'expired') return matchQ && (st === 'expired' || st === 'stopped');
+      return matchQ;
+    });
+    renderShops(list);
+  }
+
+  function renderShops(list) {
+    const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const container = document.getElementById('shopsList');
+    if (list.length === 0) { container.innerHTML = '<p style="text-align:center; color:#777;">لا توجد نتائج.</p>'; return; }
+
+    container.innerHTML = list.map(s => {
+      const st = getShopStatus(s);
+      const badge = st === 'lifetime' ? '<span class="badge b-gold">👑 بيع نهائي</span>' :
+                    st === 'active' ? '<span class="badge b-green">🟢 نشط</span>' :
+                    st === 'expiring' ? '<span class="badge b-orange">⚠️ قريب الانتهاء</span>' :
+                    '<span class="badge b-red">🔴 متوقف/منتهي</span>';
+      const customerUrl = `${baseUrl}index.html?shop=${s.slug}`;
+      const qrUrl = `${baseUrl}index.html?shop=${s.slug}&qr=1`;
+      const barberUrl = `${baseUrl}barber.html?shop=${s.slug}`;
+      const thumb = s.logo_url || './images/logo.png';
+
+      return `
+        <div class="shop-row">
+          <div class="shop-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="${thumb}" class="shop-thumb" onerror="this.src='./images/logo.png'">
+              <div>
+                <strong>${escapeHtml(s.name)}</strong> ${badge}
+                <span class="badge b-blue">🛠️ صيانات: ${s.maintenance_count || 0}</span><br>
+                <small style="color:#aaa;">المالك: ${escapeHtml(s.owner_name || '-')} | PIN: ${escapeHtml(s.pin_code)}</small><br>
+                <small style="color:#888;">📞 ${escapeHtml(s.phone || '-')} | 💰 المدفوع: <strong style="color:var(--green);">${Number(s.price_paid||0).toLocaleString()} دج</strong></small>
+              </div>
+            </div>
+            <small style="color:var(--accent);">${getRemainingText(s)}</small>
+          </div>
+          ${s.notes ? `<p style="font-size:0.8rem; color:#ccc; background:#16161c; padding:8px; border-radius:8px; margin:6px 0;">📝 ${escapeHtml(s.notes)}</p>` : ''}
+          <small style="color:var(--accent);">الزبائن: <a href="${customerUrl}" target="_blank" style="color:var(--accent);">${customerUrl}</a></small><br>
+          <small style="color:#888;">الحلاق: <a href="${barberUrl}" target="_blank" style="color:#fff;">${barberUrl}</a></small>
+          <div class="actions">
+            <button class="btn-green" onclick="openRenewModal('${s.id}')">💳 تجديد / دفع</button>
+            <button class="btn-blue" onclick="openHistoryModal('${s.id}')">📜 Historique / PDF</button>
+            <button onclick="openEditModal('${s.id}')">✏️ تعديل</button>
+            <button class="btn-dark" onclick="window.open('${qrUrl}', '_blank')">🖨️ QR</button>
+            ${s.phone ? `<a href="https://wa.me/${formatDz(s.phone)}" target="_blank" class="btn-green">💬 واتساب</a>` : ''}
+            <button class="btn-dark" onclick="incrementMaintenance('${s.id}')">🛠️ +1 صيانة</button>
+            <button class="btn-dark" onclick="triggerLogoUpdate('${s.id}')">🖼️ لوغو</button>
+            <button class="btn-dark" onclick="toggleShop('${s.id}')">${s.is_active ? 'إيقاف' : 'تفعيل'}</button>
+            <button class="btn-red" onclick="deleteShop('${s.id}')">🗑️ حذف</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderTickets() {
+    const container = document.getElementById('ticketsList');
+    if (allTickets.length === 0) { container.innerHTML = '<p style="text-align:center; color:#777;">لا توجد طلبات مساعدة حالياً.</p>'; return; }
+    container.innerHTML = allTickets.map(t => `
+      <div class="shop-row">
+        <div class="shop-header">
+          <strong>${escapeHtml(t.shop_name)} — ${escapeHtml(t.subject)}</strong>
+          <span class="badge ${t.status === 'open' ? 'b-orange' : 'b-green'}">${t.status === 'open' ? 'مفتوح' : 'تم الرد ✅'}</span>
+        </div>
+        <p style="font-size:0.9rem; color:#ddd; margin:6px 0;">${escapeHtml(t.message)}</p>
+        <small style="color:#777;">${new Date(t.created_at).toLocaleString('ar-DZ')}</small>
+        ${t.admin_reply ? `<p style="font-size:0.85rem; color:var(--green); margin:8px 0;">ردك: ${escapeHtml(t.admin_reply)}</p>` : ''}
+        <div class="actions">
+          <button onclick="replyTicket('${t.id}')">💬 رد / إغلاق التذكرة</button>
+          <button class="btn-red" onclick="deleteTicket('${t.id}')">🗑️ حذف</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function replyTicket(id) {
+    const reply = prompt('اكتب ردك لصاحب المحل (سيظهر له في لوحة التحكم):');
+    if (reply === null) return;
+    await db.from('support_tickets').update({ admin_reply: reply, status: 'resolved' }).eq('id', id);
+    refreshAll();
+  }
+
+  async function deleteTicket(id) {
+    if (!confirm('حذف هذه التذكرة؟')) return;
+    await db.from('support_tickets').delete().eq('id', id);
+    refreshAll();
+  }
+
+  function triggerLogoUpdate(id) { targetShopIdForLogo = id; document.getElementById('updateLogoInput').click(); }
+  document.getElementById('updateLogoInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !targetShopIdForLogo) return;
+    const logo_url = await compressLogo(file);
+    await db.from('shops').update({ logo_url }).eq('id', targetShopIdForLogo);
+    e.target.value = '';
+    refreshAll();
+  });
+
+  async function toggleShop(id) {
+    const s = allShops.find(x => x.id === id);
+    if (!s) return;
+    await db.from('shops').update({ is_active: !s.is_active }).eq('id', id);
+    refreshAll();
+  }
+
+  async function deleteShop(id) {
+    const s = allShops.find(x => x.id === id);
+    if (!s) return;
+    if (!confirm(`تحذير: سيتم حذف محل "${s.name}" وجميع بياناته نهائياً! هل أنت متأكد؟`)) return;
+    await db.from('shops').delete().eq('id', id);
+    refreshAll();
+  }
+
+  async function downloadBackup() {
+    const backup = { exported_at: new Date().toISOString(), shops: allShops, payment_history: allPayments, demo_customers: demoCustomerByShop, support_tickets: allTickets };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `FIDELIX-Backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  }
+
+  async function saveThemeSettings() {
+    const accent_color = document.getElementById('setAccent').value;
+    const bg_color = document.getElementById('setBg').value;
+    const file = document.getElementById('setAdminLogo').files[0];
+    const updates = { accent_color, bg_color };
+    if (file) updates.admin_logo = await compressLogo(file);
+    await db.from('admin_settings').update(updates).eq('id', 1);
+    alert('تم حفظ الإعدادات بنجاح!');
+    loadSettings();
+  }
+
+  async function changeAdminPass() {
+    const p = document.getElementById('newAdminPass').value.trim();
+    if (p.length < 6) return alert('اختر كلمة مرور من 6 أحرف على الأقل');
+    const password_hash = await sha256(p);
+    await db.from('admin_settings').update({ password_hash }).eq('id', 1);
+    document.getElementById('newAdminPass').value = '';
+    alert('تم تحديث كلمة المرور بنجاح!');
+    loadSettings();
+  }
+</script>
+</body>
+</html>

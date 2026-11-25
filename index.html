@@ -223,8 +223,11 @@
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const params = new URLSearchParams(window.location.search);
-  const shopSlug = (params.get('shop') || 'barber-vip').trim().toLowerCase();
-  const isQrMode = params.get('qr') === '1';
+const urlSlug = (params.get('shop') || '').trim().toLowerCase();
+if (urlSlug) {
+  localStorage.setItem('last_shop_slug', urlSlug);
+}
+const shopSlug = urlSlug || localStorage.getItem('last_shop_slug') || 'barber-vip';  const isQrMode = params.get('qr') === '1';
   let currentShop = null;
 
   async function init() {

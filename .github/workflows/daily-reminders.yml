@@ -26,7 +26,7 @@ jobs:
             const cutoff28 = new Date(now - 28 * 24 * 60 * 60 * 1000).toISOString();
             const days15 = 15 * 24 * 60 * 60 * 1000;
 
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*,shops(name,is_active)&last_visit_at=lt.${cutoff28}`, {
+          contents: { en: (c.shops.reminder_message || `شعرك طوال يا {name}، أرواح نفس الوقت تاع آخر مرة؟`).replace(/\{name\}/g, c.full_name) }`, {
               headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
             });
             const customers = await res.json();

@@ -4,10 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FIDELIX - لوحة الإدارة الشاملة</title>
+  <link rel="manifest" href="./manifest-admin.json">
   <link id="favIcon" rel="icon" type="image/png" href="./images/logo.png">
+  <link id="appleIcon" rel="apple-touch-icon" href="./images/logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FIDELIX Admin">
   <meta name="theme-color" content="#08080a">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "643ff1c9-c02d-48de-a6ed-6be7e7a5b77f",
+        serviceWorkerParam: { scope: "/AG-BARBER/" },
+        serviceWorkerPath: "AG-BARBER/OneSignalSDKWorker.js"
+      });
+    });
+  </script>
+
   <style>
     :root { --bg: #08080a; --card: #141419; --accent: #d4af37; --green: #25D366; --red: #e74c3c; --orange: #f39c12; --blue: #3498db; --text: #fff; }
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -56,69 +74,17 @@
     .powered-by { margin-top: 20px; font-size: 0.75rem; color: rgba(255,255,255,0.35); text-align: center; }
     .powered-by span { color: var(--accent); font-weight: 600; }
 
-    /* تنسيق نافذة وصل PDF (نسختان في صفحة A4 واحدة) */
-    .receipt-sheet {
-      background: #ffffff;
-      color: #0f172a;
-      border-radius: 12px;
-      padding: 18px;
-      margin-top: 10px;
-    }
-    .receipt-copy {
-      border: 2px solid #1e293b;
-      border-radius: 10px;
-      padding: 14px 16px;
-      background: #ffffff;
-    }
-    .receipt-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid #b88f1e;
-      padding-bottom: 8px;
-      margin-bottom: 10px;
-    }
-    .receipt-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 14px;
-      font-size: 0.85rem;
-      margin-bottom: 10px;
-    }
-    .receipt-grid div {
-      padding: 4px 8px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-    }
-    .receipt-foot {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px dashed #94a3b8;
-      padding-top: 8px;
-      font-size: 0.8rem;
-      color: #334155;
-    }
-    .cut-line {
-      text-align: center;
-      border-top: 2px dashed #64748b;
-      margin: 14px 0;
-      position: relative;
-      color: #64748b;
-      font-size: 0.78rem;
-    }
+    .receipt-sheet { background: #ffffff; color: #0f172a; border-radius: 12px; padding: 18px; margin-top: 10px; }
+    .receipt-copy { border: 2px solid #1e293b; border-radius: 10px; padding: 14px 16px; background: #ffffff; }
+    .receipt-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #b88f1e; padding-bottom: 8px; margin-bottom: 10px; }
+    .receipt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 0.85rem; margin-bottom: 10px; }
+    .receipt-grid div { padding: 4px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
+    .receipt-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 0.8rem; color: #334155; }
+    .cut-line { text-align: center; border-top: 2px dashed #64748b; margin: 14px 0; position: relative; color: #64748b; font-size: 0.78rem; }
     @media print {
       body * { visibility: hidden; }
       #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
-      #receiptPrintArea {
-        position: fixed;
-        inset: 0;
-        background: #fff !important;
-        padding: 8mm !important;
-        margin: 0 !important;
-        z-index: 99999;
-      }
+      #receiptPrintArea { position: fixed; inset: 0; background: #fff !important; padding: 8mm !important; margin: 0 !important; z-index: 99999; }
       .no-print { display: none !important; }
     }
   </style>
@@ -144,10 +110,15 @@
           <small style="color:#888;">تطوير شركة KARIX-Tech | 0549838960</small>
         </div>
       </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-green" style="width:auto; padding:8px 14px; margin:0;" onclick="openQrScanner()">📷 مسح QR محل</button>
-        <button class="btn-dark" style="width:auto; padding:8px 14px; margin:0;" onclick="location.reload()">خروج</button>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button id="adminNotifBtn" class="btn-blue" style="width:auto; padding:8px 12px; margin:0; font-size:0.82rem;" onclick="enableAdminPush()">🔔 تفعيل الإشعارات</button>
+        <button class="btn-green" style="width:auto; padding:8px 12px; margin:0; font-size:0.82rem;" onclick="openQrScanner()">📷 مسح QR محل</button>
+        <button class="btn-dark" style="width:auto; padding:8px 12px; margin:0; font-size:0.82rem;" onclick="location.reload()">خروج</button>
       </div>
+    </div>
+
+    <div id="iosAdminTip" class="box hidden" style="border-color:var(--accent); padding:12px 16px; font-size:0.85rem; color:#ddd;">
+      📱 <strong>لمستخدمي الآيفون:</strong> لتفعيل إشعارات الصيانة وظهور الأيقونة، اضغط على زر <strong>المشاركة (Share)</strong> ثم <strong>إضافة إلى الشاشة الرئيسية</strong>، وبعدها افتح التطبيق من الأيقونة واضغط على <strong>🔔 تفعيل الإشعارات</strong>.
     </div>
 
     <div class="nav">
@@ -490,6 +461,39 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  function updateNotifBtnState() {
+    const btn = document.getElementById('adminNotifBtn');
+    if (!btn || typeof Notification === 'undefined') return;
+    if (Notification.permission === 'granted') {
+      btn.className = 'btn-green';
+      btn.innerText = '🔔 الإشعارات مفعّلة';
+    } else if (Notification.permission === 'denied') {
+      btn.className = 'btn-red';
+      btn.innerText = '🔕 الإشعارات محظورة';
+    }
+  }
+
+  function enableAdminPush() {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.login('fidelix-admin');
+        if (typeof Notification !== 'undefined') {
+          if (Notification.permission === 'denied') {
+            alert('الإشعارات محظورة من إعدادات المتصفح. يرجى السماح بالإشعارات لهذا الموقع من إعدادات المتصفح ثم المحاولة مجدداً.');
+            return;
+          }
+          if (Notification.permission !== 'granted') {
+            await OneSignal.Notifications.requestPermission();
+          }
+        }
+        updateNotifBtnState();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+
   async function loadSettings() {
     const { data } = await db.from('admin_settings').select('*').eq('id', 1).maybeSingle();
     if (data) {
@@ -506,6 +510,7 @@
         document.getElementById('authLogo').src = data.admin_logo;
         document.getElementById('headerLogo').src = data.admin_logo;
         document.getElementById('favIcon').href = data.admin_logo;
+        document.getElementById('appleIcon').href = data.admin_logo;
       }
     }
   }
@@ -520,6 +525,15 @@
     if (hash === validHash || (pass === '2026' && !adminSettings)) {
       document.getElementById('authBox').classList.add('hidden');
       document.getElementById('mainBox').classList.remove('hidden');
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isIOS && !isStandalone) {
+        document.getElementById('iosAdminTip').classList.remove('hidden');
+      }
+
+      enableAdminPush();
+      updateNotifBtnState();
       refreshAll();
     } else {
       alert('كلمة المرور غير صحيحة');
@@ -585,7 +599,6 @@
     return days >= 0 ? `متبقي ${days} يوم` : `منتهي منذ ${Math.abs(days)} يوم`;
   }
 
-  /* ===== إصدار وصل PDF رسمي بنسختين (نسخة الإدارة + نسخة الزبون) ===== */
   function openReceiptPdf(paymentId) {
     const pay = allPayments.find(p => p.id === paymentId);
     if (!pay) return alert('تعذر العثور على بيانات الدفعة');
@@ -655,7 +668,6 @@
 
   function closeReceiptModal() { document.getElementById('receiptModal').classList.add('hidden'); }
 
-  /* ===== واجهة التقارير والإحصائيات الشاملة ===== */
   function renderReports() {
     let monthlyCount = 0, yearlyCount = 0, lifetimeCount = 0;
     let lifetimeRev = 0, subRev = 0, totalMaint = 0;
@@ -732,7 +744,6 @@
     a.click();
   }
 
-  /* ===== نافذة تجديد الاشتراك والدفع ===== */
   function openRenewModal(shopId) {
     const s = allShops.find(x => x.id === shopId);
     if (!s) return;
@@ -800,7 +811,6 @@
     if (createdPay) openReceiptPdf(createdPay.id);
   }
 
-  /* ===== نافذة سجل الدفعات (Historique Payment) ===== */
   function openHistoryModal(shopId) {
     const s = allShops.find(x => x.id === shopId);
     if (!s) return;
@@ -843,7 +853,6 @@
     openHistoryModal(shopId);
   }
 
-  /* ===== قسم زبون التجربة (1 لكل محل) ===== */
   function renderDemoCustomers() {
     const q = (document.getElementById('demoSearch')?.value || '').trim().toLowerCase();
     const container = document.getElementById('demoCustomersList');
@@ -956,7 +965,6 @@
     refreshAll();
   }
 
-  /* ===== ماسح QR للمحلات ===== */
   async function openQrScanner() {
     document.getElementById('qrScanModal').classList.remove('hidden');
     document.getElementById('scannedShopResult').classList.add('hidden');
@@ -1027,7 +1035,6 @@
     if (!document.getElementById('qrScanModal').classList.contains('hidden')) handleScannedShop(s.slug);
   }
 
-  /* ===== التعديل الشامل للمحل ===== */
   function openEditModal(id) {
     const s = allShops.find(x => x.id === id);
     if (!s) return;

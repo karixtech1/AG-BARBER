@@ -447,9 +447,25 @@
       message
     });
     if (error) return alert('حدث خطأ أثناء الإرسال، حاول مجدداً');
+
+    fetch(`${SUPABASE_URL}/functions/v1/send-promo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({
+        type: 'admin_support',
+        shop_id: currentShop.id,
+        pin_code: currentShop.pin_code,
+        subject,
+        message
+      })
+    }).catch(() => {});
+
     document.getElementById('supSubject').value = '';
     document.getElementById('supMsg').value = '';
-    alert('تم إرسال طلبك بنجاح! سيتواصل معك فريق Karix-Tech قريباً.');
+    alert('تم إرسال طلبك بنجاح! وصل إشعار فوري للإدارة وسنتواصل معك قريباً.');
     loadMyTickets();
   }
 

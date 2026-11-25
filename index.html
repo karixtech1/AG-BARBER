@@ -70,7 +70,49 @@
       font-size: 1.45rem;
       font-weight: 800;
       letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 10px;
+    }
+    /* صندوق عرض مضمون الإشعار للزبون */
+    .notif-card {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.16) 0%, rgba(24, 24, 31, 0.95) 100%);
+      border: 1.5px solid var(--gold);
+      border-radius: 18px;
+      padding: 16px 14px;
+      margin: 12px 0 18px;
+      text-align: right;
+      box-shadow: 0 10px 25px rgba(212, 175, 55, 0.12);
+    }
+    .notif-badge {
+      display: inline-block;
+      background: var(--gold);
+      color: #000;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    .notif-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--gold-light);
+      margin: 0 0 6px;
+    }
+    .notif-body {
+      font-size: 0.95rem;
+      color: #f1f1f5;
+      line-height: 1.6;
+      margin: 0;
+      white-space: pre-line;
+    }
+    .notif-close {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ccc;
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      box-shadow: none;
     }
     .greeting { font-size: 1rem; color: #d0d0d8; margin-bottom: 20px; }
     input {
@@ -181,6 +223,14 @@
   <img id="shopLogo" src="./images/logo.png" alt="FIDELIX" class="brand-logo" onerror="this.style.display='none'">
   <div id="shopTitle" class="shop-name">جاري التحميل...</div>
 
+  <!-- بطاقة عرض مضمون الإشعار عند دخول الزبون من الإشعار -->
+  <div id="notifBanner" class="notif-card hidden">
+    <span id="notifShopBadge" class="notif-badge">🔔 رسالة جديدة</span>
+    <div id="notifTitleText" class="notif-title"></div>
+    <p id="notifBodyText" class="notif-body"></p>
+    <button type="button" class="notif-close" onclick="document.getElementById('notifBanner').classList.add('hidden')">إخفاء الرسالة ✕</button>
+  </div>
+
   <!-- وضع توليد QR المحل للطباعة -->
   <div id="shopQrView" class="hidden">
     <p class="greeting" style="margin-top:8px;">امسح الكود واحصل على بطاقة الوفاء ✂️</p>
@@ -223,23 +273,27 @@
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const params = new URLSearchParams(window.location.search);
-const urlSlug = (params.get('shop') || '').trim().toLowerCase();
-if (urlSlug) {
-  localStorage.setItem('last_shop_slug', urlSlug);
-}
-const shopSlug = urlSlug || localStorage.getItem('last_shop_slug') || 'barber-vip';  const isQrMode = params.get('qr') === '1';
+  const urlSlug = (params.get('shop') || '').trim().toLowerCase();
+  if (urlSlug) {
+    localStorage.setItem('last_shop_slug', urlSlug);
+  }
+  const shopSlug = urlSlug || localStorage.getItem('last_shop_slug') || 'barber-vip';
+  const isQrMode = params.get('qr') === '1';
+  const notifTitle = (params.get('notif_title') || '').trim();
+  const notifMsg = (params.get('notif_msg') || '').trim();
   let currentShop = null;
 
   async function init() {
     const { data: shop } = await db.from('shops').select('*').eq('slug', shopSlug).single();
-  if (!shop || !shop.is_active || (shop.plan_type !== 'lifetime' && new Date(shop.expires_at) < new Date())) {
+    if (!shop || !shop.is_active || (shop.plan_type !== 'lifetime' && new Date(shop.expires_at) < new Date())) {
       document.getElementById('shopTitle').innerText = 'الخدمة غير متاحة حالياً';
       return;
     }
     currentShop = shop;
     document.getElementById('shopTitle').innerText = '✂️ ' + shop.name;
     document.getElementById('rewardText').innerText = '🎁 ' + shop.reward_text;
-const resolvedLogo = shop.logo_url || new URL('./images/logo.png', window.location.href).href;
+
+    const resolvedLogo = shop.logo_url || new URL('./images/logo.png', window.location.href).href;
     const logoImg = document.getElementById('shopLogo');
     logoImg.src = resolvedLogo;
     logoImg.style.display = 'inline-block';
@@ -247,22 +301,12 @@ const resolvedLogo = shop.logo_url || new URL('./images/logo.png', window.locati
     document.querySelector('link[rel="apple-touch-icon"]').href = resolvedLogo;
     document.title = `${shop.name} - بطاقة الوفاء`;
 
-    const manifestObj = {
-      name: `${shop.name} - بطاقة الوفاء`,
-      short_name: shop.name.slice(0, 15),
-      start_url: window.location.href,
-      display: "standalone",
-      background_color: "#08080a",
-      theme_color: "#08080a",
-      icons: [
-        { src: resolvedLogo, sizes: "192x192", type: "image/png" },
-        { src: resolvedLogo, sizes: "512x512", type: "image/png" }
-      ]
-    };
-    const manifestLink = document.querySelector('link[rel="manifest"]');
-    if (manifestLink) {
-      const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-      manifestLink.href = URL.createObjectURL(blob);
+    // إظهار اسم المحل ومضمون الإشعار إذا دخل الزبون عبر الإشعار
+    if (notifTitle || notifMsg) {
+      document.getElementById('notifBanner').classList.remove('hidden');
+      document.getElementById('notifShopBadge').innerText = `🔔 إشعار من ${shop.name}`;
+      document.getElementById('notifTitleText').innerText = notifTitle || `رسالة من ${shop.name}`;
+      document.getElementById('notifBodyText').innerText = notifMsg;
     }
 
     if (isQrMode) {

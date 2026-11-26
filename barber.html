@@ -38,13 +38,13 @@
       border: 1.5px solid rgba(212, 175, 55, 0.5); display: block; margin: 0 auto 12px;
     }
     h2, h3 { margin: 0 0 14px; color: var(--gold-light); text-align: center; }
-    input, textarea {
+    input, select, textarea {
       width: 100%; padding: 13px; border-radius: 12px; border: 1px solid #2b2b36;
       background: #0d0d11; color: #fff; font-size: 0.95rem; text-align: center;
       margin-bottom: 10px; outline: none; font-family: inherit;
     }
     textarea { text-align: right; resize: vertical; min-height: 80px; }
-    input:focus, textarea:focus { border-color: var(--gold); }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold); }
     button {
       width: 100%; padding: 13px; border-radius: 12px; border: none;
       background: linear-gradient(135deg, var(--gold) 0%, #b88f1e 100%);
@@ -141,16 +141,28 @@
       </div>
     </div>
 
-    <!-- التبويب 2: الزبائن الغائبون (+28 يوم) + تخصيص الرسالة -->
+    <!-- التبويب 2: الزبائن الغائبون + اختيار المدة وتخصيص الرسالة -->
     <div id="tab-inactive" class="card hidden">
-      <h3>تخصيص رسالة التذكير</h3>
+      <h3>إعدادات التذكير التلقائي</h3>
       <div class="msg-box">
-        <p class="hint">اكتب النص الذي يُرسل تلقائياً (وفي واتساب) للزبائن الغائبين. استخدم <strong>{name}</strong> ليوضع اسم الزبون تلقائياً:</p>
+        <p class="hint">⏱️ <strong>متى تُرسل رسالة التذكير للزبون بعد آخر حلاقة؟</strong></p>
+        <select id="reminderDaysSelect" onchange="onReminderDaysChange()">
+          <option value="10">كل 10 أيام</option>
+          <option value="15">كل 15 يوماً</option>
+          <option value="20">كل 20 يوماً</option>
+          <option value="25">كل 25 يوماً</option>
+          <option value="28" selected>كل 28 يوماً</option>
+          <option value="30">كل 30 يوماً (شهر)</option>
+          <option value="custom">✏️ تحديد مدة مخصصة بالأيام...</option>
+        </select>
+        <input type="number" id="reminderDaysCustom" min="1" max="365" placeholder="أدخل عدد الأيام (مثلاً: 12)" class="hidden">
+
+        <p class="hint" style="margin-top:6px;">✍️ نص الرسالة (استخدم <strong>{name}</strong> ليوضع اسم الزبون تلقائياً):</p>
         <textarea id="reminderMsgInput" placeholder="مثلاً: سلام {name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة ✂️"></textarea>
-        <button class="btn-outline" onclick="saveReminderMsg()" style="padding:10px; font-size:0.9rem;">💾 حفظ نص الرسالة</button>
+        <button class="btn-outline" onclick="saveReminderSettings()" style="padding:10px; font-size:0.9rem;">💾 حفظ المدة ونص الرسالة</button>
       </div>
 
-      <h3>الغائبون لأكثر من 28 يوماً</h3>
+      <h3 id="inactiveListTitle">الغائبون لأكثر من 28 يوماً</h3>
       <div id="inactiveList">جاري التحميل...</div>
     </div>
 
@@ -207,7 +219,6 @@
   </div>
 </div>
 
-<!-- حقل اختيار صورة اللوغو -->
 <input type="file" id="barberLogoInput" accept="image/*" class="hidden">
 
 <div class="powered-by">Powered by <span>Karix-Tech</span></div>
@@ -309,6 +320,33 @@
     alert('✅ تم تحديث لوغو المحل بنجاح! سيظهر الآن عندك وعند جميع زبائنك.');
   });
 
+  function setReminderDaysUI(daysVal) {
+    const d = Number(daysVal) || 28;
+    const sel = document.getElementById('reminderDaysSelect');
+    const customInp = document.getElementById('reminderDaysCustom');
+    const presets = ['10', '15', '20', '25', '28', '30'];
+    if (presets.includes(String(d))) {
+      sel.value = String(d);
+      customInp.classList.add('hidden');
+    } else {
+      sel.value = 'custom';
+      customInp.value = d;
+      customInp.classList.remove('hidden');
+    }
+    document.getElementById('inactiveListTitle').innerText = `الغائبون لأكثر من ${d} يوماً`;
+  }
+
+  function onReminderDaysChange() {
+    const val = document.getElementById('reminderDaysSelect').value;
+    const customInp = document.getElementById('reminderDaysCustom');
+    if (val === 'custom') {
+      customInp.classList.remove('hidden');
+      customInp.focus();
+    } else {
+      customInp.classList.add('hidden');
+    }
+  }
+
   async function initLogin() {
     const savedSlug = urlSlug || localStorage.getItem('barber_last_slug') || '';
     if (savedSlug) document.getElementById('slugInput').value = savedSlug;
@@ -347,6 +385,8 @@
     localStorage.setItem('barber_last_slug', slug);
     document.getElementById('activeShopName').innerText = shop.name;
     document.getElementById('reminderMsgInput').value = shop.reminder_message || `سلام {name}، شعرك طوال! أرواح نفس الوقت تاع آخر مرة في ${shop.name} ✂️`;
+    setReminderDaysUI(shop.reminder_days || 28);
+
     document.getElementById('sosWhatsappBtn').href = `https://wa.me/213549838960?text=${encodeURIComponent('سلام KARIX-Tech، معكم محل: ' + shop.name)}`;
     document.getElementById('sosGmailBtn').href = `mailto:karixtech1@gmail.com?subject=${encodeURIComponent('طلب دعم فني - ' + shop.name)}`;
     applyShopBranding(shop);
@@ -387,12 +427,28 @@
     if (tab === 'support') loadMyTickets();
   }
 
-  async function saveReminderMsg() {
+  async function saveReminderSettings() {
     const msg = document.getElementById('reminderMsgInput').value.trim();
     if (!msg) return alert('اكتب نص الرسالة أولاً');
-    await db.from('shops').update({ reminder_message: msg }).eq('id', currentShop.id);
+
+    const selVal = document.getElementById('reminderDaysSelect').value;
+    const days = selVal === 'custom'
+      ? parseInt(document.getElementById('reminderDaysCustom').value, 10)
+      : parseInt(selVal, 10);
+
+    if (!days || days < 1 || days > 365) return alert('يرجى إدخال عدد أيام صحيح (من 1 إلى 365)');
+
+    const { error } = await db.from('shops').update({
+      reminder_message: msg,
+      reminder_days: days
+    }).eq('id', currentShop.id);
+
+    if (error) return alert('حدث خطأ أثناء الحفظ: ' + error.message);
+
     currentShop.reminder_message = msg;
-    alert('تم حفظ نص رسالة الغائبين بنجاح!');
+    currentShop.reminder_days = days;
+    document.getElementById('inactiveListTitle').innerText = `الغائبون لأكثر من ${days} يوماً`;
+    alert(`✅ تم الحفظ! ستُرسل رسالة التذكير تلقائياً لكل زبون يغيب أكثر من ${days} يوماً.`);
     loadData();
   }
 
@@ -554,12 +610,14 @@
     document.getElementById('statTotal').innerText = list.length;
     document.getElementById('statRewards').innerText = list.reduce((sum, c) => sum + c.total_rewards, 0);
 
-    const cutoff = Date.now() - (28 * 24 * 60 * 60 * 1000);
+    const days = Number(currentShop.reminder_days) || 28;
+    document.getElementById('inactiveListTitle').innerText = `الغائبون لأكثر من ${days} يوماً`;
+    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
     const inactive = list.filter(c => new Date(c.last_visit_at).getTime() < cutoff);
 
     const container = document.getElementById('inactiveList');
     if (inactive.length === 0) {
-      container.innerHTML = '<p style="text-align:center; color:#777;">لا يوجد زبائن غائبون حالياً.</p>';
+      container.innerHTML = `<p style="text-align:center; color:#777;">لا يوجد زبائن غائبون لأكثر من ${days} يوماً حالياً.</p>`;
       return;
     }
 

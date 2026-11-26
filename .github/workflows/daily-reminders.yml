@@ -24,21 +24,25 @@ jobs:
 
           async function run() {
             const now = Date.now();
-            const cutoff28 = new Date(now - 28 * 24 * 60 * 60 * 1000).toISOString();
-            const days15 = 15 * 24 * 60 * 60 * 1000;
 
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*,shops(slug,name,is_active,reminder_message)&last_visit_at=lt.${cutoff28}`, {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*,shops(slug,name,is_active,reminder_message,reminder_days)&last_visit_at=not.is.null`, {
               headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
             });
             const customers = await res.json();
-            console.log("عدد الزبائن الغائبين:", customers.length);
+            console.log("إجمالي الزبائن المفحوصين:", customers.length);
 
             for (const c of customers) {
-              if (!c.shops?.is_active) continue;
+              if (!c.shops?.is_active || !c.last_visit_at) continue;
+
+              const reminderDays = Number(c.shops.reminder_days) || 28;
+              const requiredMs = reminderDays * 24 * 60 * 60 * 1000;
+
+              const sinceLastVisit = now - new Date(c.last_visit_at).getTime();
+              if (sinceLastVisit < requiredMs) continue;
 
               if (c.last_notified_at) {
                 const sinceLastNotify = now - new Date(c.last_notified_at).getTime();
-                if (sinceLastNotify < days15) continue;
+                if (sinceLastNotify < requiredMs) continue;
               }
 
               const msgTemplate = c.shops.reminder_message || "شعرك طوال يا {name}، أرواح نفس الوقت تاع آخر مرة؟";
@@ -62,7 +66,7 @@ jobs:
                 })
               });
               const pushData = await pushRes.json();
-              console.log("نتيجة الإرسال لـ", c.full_name, ":", JSON.stringify(pushData));
+              console.log(`نتيجة الإرسال لـ ${c.full_name} (بعد ${reminderDays} يوم):`, JSON.stringify(pushData));
 
               await fetch(`${SUPABASE_URL}/rest/v1/customers?id=eq.${c.id}`, {
                 method: "PATCH",

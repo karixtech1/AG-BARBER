@@ -262,6 +262,12 @@
     <div id="iosTip" class="ios-tip hidden">
       📱 لمستخدمي الآيفون: اضغط على زر <strong>المشاركة</strong> ثم <strong>إضافة إلى الشاشة الرئيسية</strong> لتصلك تذكيرات حلاقتك.
     </div>
+    <button id="androidInstallBtn" type="button" class="hidden" style="background:transparent; border:1.5px solid var(--gold); color:var(--gold-light); margin-top:12px;" onclick="installAndroidApp()">
+      📲 تثبيت البطاقة على الشاشة الرئيسية
+    </button>
+    <div id="androidTip" class="ios-tip hidden">
+      📱 لتثبيت البطاقة على هاتفك: افتح الرابط في <strong>Chrome</strong>، ثم اضغط على النقاط الثلاث <strong>(⋮)</strong> واختر <strong>Installer l'application</strong> أو <strong>Ajouter à l'écran d'accueil</strong>.
+    </div>
   </div>
 </div>
 
@@ -386,7 +392,33 @@
       document.getElementById('iosTip').classList.remove('hidden');
     }
   }
+let deferredInstallPrompt = null;
 
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const installBtn = document.getElementById('androidInstallBtn');
+    const androidTip = document.getElementById('androidTip');
+    if (installBtn) installBtn.classList.remove('hidden');
+    if (androidTip) androidTip.classList.add('hidden');
+  });
+
+  async function installAndroidApp() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') {
+      document.getElementById('androidInstallBtn').classList.add('hidden');
+    }
+    deferredInstallPrompt = null;
+  }
+
+  // إظهار التوضيح لأجهزة أندرويد غير المثبتة إذا لم يظهر الزر التلقائي
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+  if (isAndroid && !isStandaloneMode) {
+    document.getElementById('androidTip').classList.remove('hidden');
+  }
   init();
 </script>
 </body>
